@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Futures Ledger</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Futures Ledger">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<style>
+:root{--bg:#f5f4ee;--card:#fff;--line:#e3e1d8;--tx:#1f1e1d;--mut:#76736b;--acc:#c6613f;--blu:#5a7ea6;--up:#2f7d4f;--dn:#c0432f;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1f1e1d;--card:#2b2a28;--line:#3b3a37;--tx:#faf9f5;--mut:#9c9a92;--acc:#d97757;--up:#7fc08f;--dn:#e8806c}}
+:root[data-theme="dark"]{--bg:#1f1e1d;--card:#2b2a28;--line:#3b3a37;--tx:#faf9f5;--mut:#9c9a92;--acc:#d97757;--up:#7fc08f;--dn:#e8806c}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0 auto;background:var(--bg);color:var(--tx);font:16px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;max-width:560px;padding:16px 16px 96px}
+h1{font-size:26px;margin:8px 0 2px;font-weight:650;letter-spacing:-.02em}
+.sub{color:var(--mut);font-size:14px;margin-bottom:18px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px;margin-bottom:12px}
+.big{font-size:38px;font-weight:650;letter-spacing:-.03em}
+.lbl{color:var(--mut);font-size:12px;text-transform:uppercase;letter-spacing:.08em}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.grid .card{margin:0}.mid{font-size:22px;font-weight:600;margin-top:4px}
+.up{color:var(--up)}.dn{color:var(--dn)}
+.row{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.item{padding:14px 0;border-top:1px solid var(--line);cursor:pointer}.item:first-child{border-top:0}
+.nav{position:fixed;left:0;right:0;bottom:0;display:flex;justify-content:center;gap:4px;background:var(--bg);border-top:1px solid var(--line);padding:8px 8px calc(8px + env(safe-area-inset-bottom,0px))}
+.nav button{flex:1;max-width:130px;background:none;border:0;color:var(--mut);padding:10px 4px;border-radius:12px;font:inherit;font-size:14px}
+.nav button.on{color:var(--tx);background:var(--card)}
+.btn{background:var(--acc);color:#fff;border:0;border-radius:14px;padding:14px 18px;font:inherit;font-weight:600;width:100%}
+.btn.alt{background:var(--card);color:var(--tx);border:1px solid var(--line)}
+.btn.blue{background:var(--blu)}
+.btn.red{background:#b0594e}
+.stack{display:grid;gap:10px;margin-bottom:12px}
+input,textarea{width:100%;background:var(--bg);color:var(--tx);border:1px solid var(--line);border-radius:12px;padding:11px 12px;font:inherit;font-size:16px}
+label{display:block;color:var(--mut);font-size:12px;margin:10px 0 4px}
+.sheet{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:flex-end;justify-content:center;z-index:5}
+.sheet.open{display:flex}
+.pane{background:var(--bg);width:100%;max-width:560px;max-height:92%;overflow:auto;border-radius:22px 22px 0 0;padding:18px 16px calc(24px + env(safe-area-inset-bottom,0px))}
+.tr{display:grid;grid-template-columns:1fr auto 28px;gap:8px;margin-bottom:8px;align-items:center}
+.seg{display:flex;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.seg button{background:var(--bg);color:var(--mut);border:0;padding:10px 14px;font:inherit;font-size:14px}
+.seg .on.l{background:var(--blu);color:#fff}.seg .on.s{background:#77746d;color:#fff}
+.chip{background:var(--card);border:1px solid var(--line);color:var(--mut);border-radius:20px;padding:7px 12px;font:inherit;font-size:13px;margin:0 6px 6px 0}
+.chip.on{background:var(--blu);color:#fff;border-color:var(--blu)}
+.x{background:none;border:0;color:var(--mut);font-size:20px;padding:4px 8px}
+.msg{font-size:14px;color:var(--mut);margin:8px 0}.err{color:var(--dn)}
+.empty{text-align:center;color:var(--mut);padding:36px 8px}
+.cg{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.cd{aspect-ratio:1;border-radius:10px;border:1px solid var(--line);display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:13px;cursor:pointer}
+.cd small{font-size:9px;color:var(--mut)}
+.cd.up{background:rgba(70,160,100,.3)}.cd.dn{background:rgba(210,90,70,.3)}.cd.td{outline:1.5px solid var(--blu)}
+@keyframes fi{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes fo{from{opacity:0}to{opacity:1}}
+@keyframes su{from{opacity:0;transform:translateY(40px)}to{opacity:1;transform:none}}
+.fade{animation:fi .22s ease-out}
+.sheet.open{animation:fo .2s ease-out}
+.sheet.open .pane{animation:su .28s cubic-bezier(.2,.8,.2,1)}
+.stag>*{animation:fi .3s ease-out both;animation-delay:.24s}
+.stag>:nth-child(1){animation-delay:0s}.stag>:nth-child(2){animation-delay:.03s}.stag>:nth-child(3){animation-delay:.06s}.stag>:nth-child(4){animation-delay:.09s}.stag>:nth-child(5){animation-delay:.12s}.stag>:nth-child(6){animation-delay:.15s}.stag>:nth-child(7){animation-delay:.18s}.stag>:nth-child(8){animation-delay:.21s}
+.stag .item{animation:fi .3s ease-out both;animation-delay:.12s}.stag .item:nth-child(2){animation-delay:.2s}.stag .item:nth-child(3){animation-delay:.28s}.stag .item:nth-child(4){animation-delay:.36s}.stag .item:nth-child(5){animation-delay:.44s}.stag .item:nth-child(n+6){animation-delay:.5s}
+.btn{transition:transform .12s,opacity .12s}.btn:active{transform:scale(.98)}
+.nav button,.chip,.seg button{transition:background .15s,color .15s}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div class="nav" id="nav"></div>
+<div class="sheet" id="sheet"><div class="pane" id="pane"></div></div>
+<input type="file" id="file" accept="image/*" hidden>
+<input type="file" id="bk" accept="application/json,.json" hidden>
+<script>
+const $=s=>document.querySelector(s);
+const TAGS=['Followed plan','Overtraded','Revenge trade','FOMO','Early exit'],CATS=['Platform','Data feed','Prop firm fee','Education','Other'];
+let S={entries:[],expenses:[],recon:{},rate:1.22},tab='home',draft=null,xd=null,cal=new Date(),status='',rmon=null;
+try{Object.assign(S,JSON.parse(localStorage.getItem('futuresLedger')||'{}'))}catch(e){}
+const save=()=>{try{localStorage.setItem('futuresLedger',JSON.stringify(S))}catch(e){}};
+const n=v=>{v=parseFloat(String(v).replace(/[^0-9.\-]/g,''));return isNaN(v)?0:v};
+const money=(v,sign)=>{const a=Math.abs(v).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});return (v<0?'−':sign&&v>0?'+':'')+'$'+a};
+const cls=v=>v<0?'dn':v>0?'up':'';
+const pad=v=>String(v).padStart(2,'0');
+const today=()=>{const d=new Date();return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())};
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const sum=(a,k)=>a.reduce((t,e)=>t+n(e[k]),0);
+const fd=(d,o)=>new Date(d+'T12:00').toLocaleDateString(undefined,o);
+rmon=today().slice(0,7);
+
+function fadeApp(){const a=$('#app');a.classList.remove('fade');void a.offsetWidth;a.classList.add('fade')}
+function render(){
+  const E=[...S.entries].sort((a,b)=>b.date.localeCompare(a.date)),t=today(),ym=t.slice(0,7),y=t.slice(0,4);
+  const net=p=>sum(E.filter(e=>e.date.startsWith(p)),'net');
+  $('#nav').innerHTML=[['home','Today'],['log','Journal'],['stats','Stats'],['tax','Tax']].map(([k,l])=>`<button data-tab="${k}" class="${tab==k?'on':''}">${l}</button>`).join('');
+  let h='';
+  if(tab=='home'){const tn=sum(E.filter(e=>e.date==t),'net');
+    h=`<h1>Futures Ledger</h1><div class="sub">${new Date().toLocaleDateString(undefined,{weekday:'long',month:'long',day:'numeric'})}</div>
+    <div class="card"><div class="lbl">Today, net</div><div class="big ${cls(tn)}">${money(tn,1)}</div></div>
+    <div class="grid"><div class="card"><div class="lbl">This month</div><div class="mid ${cls(net(ym))}">${money(net(ym),1)}</div></div>
+    <div class="card"><div class="lbl">This year</div><div class="mid ${cls(net(y))}">${money(net(y),1)}</div></div></div>
+    <div style="height:14px"></div><div class="stack"><button class="btn blue" data-act="scan">Add day from screenshot</button><button class="btn alt" data-act="manual">Enter manually</button><button class="btn alt" data-act="exp">Add expense</button></div>
+    ${E.length?`<div class="lbl" style="margin:18px 0 6px">Recent</div><div class="card">${E.slice(0,4).map(row).join('')}</div>`:''}`;
+  }else if(tab=='log'){h=`<h1>Journal</h1><div class="sub">${E.length} logged day${E.length==1?'':'s'}. Tap a date to add or edit.</div>`+calHTML(E)+(E.length?`<div class="card">${E.slice(0,60).map(row).join('')}</div>`:'');
+  }else if(tab=='stats'){h=`<h1>Stats</h1><div class="sub">Across all logged days</div>`+statsHTML(E);
+  }else h=taxHTML(E,y);
+  $('#app').innerHTML=h;if(tab=='tax')rcalc();
+}
+function row(e){return `<div class="item row" data-edit="${e.id}"><div><b>${fd(e.date,{weekday:'short',month:'short',day:'numeric'})}</b><div class="sub" style="margin:0">${n(e.micros)} micro${n(e.micros)==1?'':'s'} · fees ${money(n(e.fees))}${(e.tags||[]).length?' · '+esc(e.tags.join(', ')):''}</div></div><b class="${cls(n(e.net))}">${money(n(e.net),1)}</b></div>`}
+
+function calHTML(E){
+  const y=cal.getFullYear(),m=cal.getMonth(),first=new Date(y,m,1).getDay(),dim=new Date(y,m+1,0).getDate(),p=y+'-'+pad(m+1),by={};
+  E.forEach(e=>{if(e.date.startsWith(p))by[e.date]=(by[e.date]||0)+n(e.net)});
+  let c='';for(let i=0;i<first;i++)c+='<div></div>';
+  for(let d=1;d<=dim;d++){const k=p+'-'+pad(d),v=by[k];c+=`<div class="cd ${v===undefined?'':v>0?'up':v<0?'dn':''}${k==today()?' td':''}" data-day="${k}">${d}${v===undefined?'':`<small>${Math.round(v)}</small>`}</div>`}
+  const mt=Object.values(by).reduce((a,b)=>a+b,0);
+  return `<div class="card"><div class="row"><button class="x" data-cal="-1">‹</button><b>${cal.toLocaleDateString(undefined,{month:'long',year:'numeric'})}</b><button class="x" data-cal="1">›</button></div><div class="row" style="margin:4px 0 10px"><span class="lbl">Month net</span><b class="${cls(mt)}">${money(mt,1)}</b></div><div class="cg">${'SMTWTFS'.split('').map(x=>`<div class="lbl" style="text-align:center">${x}</div>`).join('')}${c}</div></div>`;
+}
+function statsHTML(E){
+  if(!E.length)return '<div class="empty">Log a few days to see your stats.</div>';
+  const A=[...E].sort((a,b)=>a.date.localeCompare(b.date)),nets=A.map(e=>n(e.net)),W=nets.filter(v=>v>0),L=nets.filter(v=>v<0);
+  const sw=W.reduce((a,b)=>a+b,0),sl=Math.abs(L.reduce((a,b)=>a+b,0)),avg=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:0;
+  let c=0,pk=0,dd=0;const pts=nets.map(v=>c+=v);pts.forEach(v=>{pk=Math.max(pk,v);dd=Math.max(dd,pk-v)});
+  const mn=Math.min(0,...pts),mx=Math.max(0,...pts),rg=(mx-mn)||1,w=300,hh=110,st=pts.length>1?w/(pts.length-1):0;
+  const line=pts.map((v,i)=>(i*st).toFixed(1)+','+(hh-((v-mn)/rg)*hh).toFixed(1)).join(' '),zy=(hh-((0-mn)/rg)*hh).toFixed(1);
+  const rows=[['Win rate',Math.round(W.length/nets.length*100)+'%'],['Average win',money(avg(W)),'up'],['Average loss',money(avg(L)),'dn'],['Profit factor',sl?(sw/sl).toFixed(2):(sw?'∞':'0')],['Max drawdown',money(-dd),'dn'],['Best day',money(Math.max(...nets),1),'up'],['Worst day',money(Math.min(...nets),1),'dn']];
+  const tg=TAGS.map(t=>{const X=A.filter(e=>(e.tags||[]).includes(t));return X.length?[t,X.length,sum(X,'net')/X.length]:null}).filter(Boolean);
+  return `<div class="card"><div class="lbl">Equity curve (cumulative net)</div><svg viewBox="0 0 ${w} ${hh}" width="100%" style="margin-top:8px;overflow:visible"><line x1="0" x2="${w}" y1="${zy}" y2="${zy}" stroke="var(--line)" stroke-dasharray="3"/><polyline points="${line}" fill="none" stroke="var(--blu)" stroke-width="2.5" stroke-linejoin="round"/></svg><div class="row" style="margin-top:8px"><span class="lbl">Total</span><b class="${cls(c)}">${money(c,1)}</b></div></div>
+  <div class="card">${rows.map(([a,v,k])=>`<div class="row item" style="cursor:default"><span>${a}</span><b class="${k||''}">${v}</b></div>`).join('')}</div>`+
+  (tg.length?`<div class="card"><div class="lbl" style="margin-bottom:4px">Average net by tag</div>${tg.map(([t,k,a])=>`<div class="row item" style="cursor:default"><span>${t} <span class="lbl">×${k}</span></span><b class="${cls(a)}">${money(a,1)}</b></div>`).join('')}</div>`:'');
+}
+function taxHTML(E,y){
+  const yrs=[...new Set([...E.map(e=>e.date.slice(0,4)),...S.expenses.map(e=>e.date.slice(0,4))])].sort().reverse();if(!yrs.length)yrs.push(y);
+  let h=`<h1>Tax summary</h1><div class="sub">Realized results and expenses by year</div>`+yrs.map(yr=>{
+    const L=E.filter(e=>e.date.startsWith(yr)),g=sum(L,'gross'),f=sum(L,'fees'),ex=sum(S.expenses.filter(e=>e.date.startsWith(yr)),'amount'),w=L.filter(e=>n(e.net)>0).length,l=L.filter(e=>n(e.net)<0).length;
+    return `<div class="card"><div class="row"><b style="font-size:20px">${yr}</b><span class="lbl">${L.length} days · ${sum(L,'micros')} micros · ${w}W / ${l}L</span></div>
+    ${[['Gross P&L',g],['Fees & commissions',-f],['Net trading P&L',g-f],['Other expenses',-ex],['Net after expenses',g-f-ex]].map(([a,v],i)=>`<div class="row item" style="cursor:default"><span>${i>=2?'<b>'+a+'</b>':a}</span><b class="${cls(v)}">${money(v,1)}</b></div>`).join('')}</div>`}).join('');
+  const X=[...S.expenses].sort((a,b)=>b.date.localeCompare(a.date));
+  h+=`<div class="lbl" style="margin:18px 0 6px">Expenses</div><div class="card">${X.length?X.map(x=>`<div class="item row" data-xedit="${x.id}"><div><b>${esc(x.cat)}</b><div class="sub" style="margin:0">${fd(x.date,{month:'short',day:'numeric',year:'numeric'})}${x.note?' · '+esc(x.note):''}</div></div><b>${money(n(x.amount))}</b></div>`).join(''):'<div class="msg">Platform, data and prop firm fees, education and similar costs. Ask your accountant what is deductible.</div>'}</div><div class="stack"><button class="btn alt" data-act="exp">Add expense</button></div>`;
+  h+=`<div class="lbl" style="margin:18px 0 6px">Reconcile with your broker</div><div class="card"><label style="margin-top:0">Month</label><input type="month" id="rc-m" value="${rmon}"><label>Broker's net P&amp;L for that month</label><input id="rc-v" inputmode="decimal" value="${esc(S.recon[rmon]??'')}"><div class="msg" id="rc-o"></div></div>`;
+  h+=`<div class="lbl" style="margin:18px 0 6px">Backup and export</div><div class="stack"><button class="btn alt" data-act="backup">Export full backup (JSON)</button><button class="btn alt" data-act="restore">Restore from backup</button><button class="btn alt" data-act="csv">Export trades CSV</button><button class="btn alt" data-act="xcsv">Export expenses CSV</button><button class="btn alt" data-act="key">Set Anthropic API key</button></div><div class="msg">Your data lives only in this browser. Export a backup regularly, and check totals against your broker's official statements.</div>`;
+  return h;
+}
+function rcalc(){
+  const o=$('#rc-o');if(!o)return;const v=$('#rc-v').value,lg=sum(S.entries.filter(e=>e.date.startsWith(rmon)),'net');
+  if(v.trim()===''){o.className='msg';o.textContent='Logged for this month: '+money(lg,1)+'. Enter your broker figure to compare.';return}
+  const d=n(v)-lg;
+  if(Math.abs(d)<.005){o.className='msg up';o.textContent='✓ Matches your logged total ('+money(lg,1)+').'}
+  else{o.className='msg err';o.textContent='Off by '+money(d,1)+': logged '+money(lg,1)+' vs broker '+money(n(v),1)+'. Look for missed days or wrong figures.'}
+}
+
+function openSheet(){$('#sheet').classList.add('open')}
+function closeSheet(){$('#sheet').classList.remove('open');draft=null;xd=null;status=''}
+function newDraft(o){return Object.assign({id:null,date:today(),trades:[],micros:'',net:'',notes:'',tags:[]},o)}
+function stag(){const p=$('#pane');p.classList.remove('stag');void p.offsetWidth;p.classList.add('stag');setTimeout(()=>p.classList.remove('stag'),700)}
+function paint(a){paint0();if(a)stag()}
+function paint0(){
+  const d=draft;if(!d)return;d.tags=d.tags||[];setTimeout(calc,0);
+  $('#pane').innerHTML=`<div class="row"><b style="font-size:20px">${d.id?'Edit day':'Review day'}</b><button class="x" data-act="close">✕</button></div>
+  ${status?`<div class="msg ${status.startsWith('!')?'err':''}">${esc(status.replace(/^!/,''))}</div>`:''}
+  <label>Date</label><input type="date" id="f-date" value="${esc(d.date)}">
+  <label>Trades (symbol and side)</label>
+  ${d.trades.map((t,i)=>{const sh=String(t.side||'').toLowerCase().startsWith('s');return `<div class="tr"><input data-t="${i}" data-k="symbol" placeholder="Symbol (e.g. MNQ)" value="${esc(t.symbol)}"><div class="seg"><button data-side="${i}:Long" class="${sh?'':'on l'}">Long</button><button data-side="${i}:Short" class="${sh?'on s':''}">Short</button></div><button class="x" data-del="${i}">✕</button></div>`}).join('')}
+  <button class="btn alt" style="padding:10px;margin-top:4px" data-act="addtrade">+ Add trade</button>
+  <label>Net P&amp;L (as shown on your platform, after commissions)</label><input id="f-net" inputmode="decimal" value="${esc(d.net)}">
+  <div class="grid"><div><label>Micros traded (round trips)</label><input id="f-micros" inputmode="numeric" value="${esc(d.micros)}"></div><div><label>Fee per micro, round trip ($)</label><input id="f-rate" inputmode="decimal" value="${S.rate}"></div></div>
+  <div class="card" style="margin-top:12px"><div class="row"><span>Fees &amp; commissions</span><b id="o-fees"></b></div><div class="row" style="margin-top:6px"><span>Gross P&amp;L</span><b id="o-gross"></b></div></div>
+  <label>Tags</label><div>${TAGS.map(t=>`<button class="chip ${d.tags.includes(t)?'on':''}" data-tag="${t}">${t}</button>`).join('')}</div>
+  <label>Notes</label><textarea id="f-notes" rows="3" placeholder="Setups, mistakes, how it felt">${esc(d.notes||'')}</textarea>
+  <div class="stack" style="margin-top:16px"><button class="btn blue" data-act="save">Save day</button>${d.id?'<button class="btn alt" data-act="delete">Delete day</button>':''}</div>`;
+}
+function paintX(){
+  const x=xd;$('#pane').innerHTML=`<div class="row"><b style="font-size:20px">${x.id?'Edit expense':'Add expense'}</b><button class="x" data-act="close">✕</button></div>
+  <label>Date</label><input type="date" id="x-date" value="${esc(x.date)}"><label>Amount ($)</label><input id="x-amt" inputmode="decimal" value="${esc(x.amount)}">
+  <label>Category</label><div>${CATS.map(c=>`<button class="chip ${x.cat==c?'on':''}" data-cat="${c}">${c}</button>`).join('')}</div>
+  <label>Note</label><input id="x-note" value="${esc(x.note||'')}" placeholder="e.g. monthly data subscription">
+  <div class="stack" style="margin-top:16px"><button class="btn red" data-act="xsave">Save expense</button>${x.id?'<button class="btn alt" data-act="xdelete">Delete expense</button>':''}</div>`;
+}
+function pull(){if(!draft)return;draft.date=$('#f-date').value||today();draft.net=$('#f-net').value;draft.micros=$('#f-micros').value;S.rate=n($('#f-rate').value)||S.rate;draft.notes=$('#f-notes').value}
+function calc(){if(!$('#f-net'))return;const m=n($('#f-micros').value),r=n($('#f-rate').value),f=m*r,g=n($('#f-net').value)+f;$('#o-fees').textContent=money(f);$('#o-gross').textContent=money(g,1);$('#o-gross').className=cls(g)}
+function summary(o){
+  const up=o.net>0,dn=o.net<0,msg=up?'Good trading!':dn?'It is what it is.':'Flat day.',sub=up?'Another green day in the books.':dn?'Log it, learn from it, move on.':'No gain, no loss.';
+  const r=(a,v,c)=>`<div class="row item" style="cursor:default"><span>${a}</span><b class="${c||''}">${v}</b></div>`;
+  $('#pane').innerHTML=`<div style="text-align:center;padding:12px 0 8px"><div style="font-size:28px;font-weight:650;letter-spacing:-.02em" class="${cls(o.net)}">${msg}</div><div class="sub" style="margin:4px 0 0">${sub}</div></div>
+  <div class="card" style="margin-top:12px">${r('Date',fd(o.date,{weekday:'short',month:'short',day:'numeric',year:'numeric'}))}${r('Net P&L',money(o.net,1),cls(o.net))}${r('Micros traded',o.micros)}${r('Fees & commissions',money(o.fees))}${r('Gross P&L',money(o.gross,1),cls(o.gross))}${(o.tags||[]).length?r('Tags',esc(o.tags.join(', '))):''}${o.notes?r('Notes',esc(o.notes)):''}</div><button class="btn" data-act="done">Done</button>`;stag();
+}
+function shrink(file){return new Promise((ok,no)=>{const u=URL.createObjectURL(file),i=new Image();i.onload=()=>{const k=Math.min(1,1800/Math.max(i.width,i.height)),c=document.createElement('canvas');c.width=i.width*k;c.height=i.height*k;c.getContext('2d').drawImage(i,0,0,c.width,c.height);URL.revokeObjectURL(u);ok(c.toDataURL('image/jpeg',.85).split(',')[1])};i.onerror=()=>no({message:'Could not open that image.'});i.src=u})}
+async function scan(file){
+  draft=newDraft();status='Reading your screenshot…';openSheet();paint(1);
+  try{
+    let key=localStorage.getItem('futuresLedgerKey');if(!key){key=(prompt('Paste your Anthropic API key (stored only on this device):')||'').trim();if(!key)throw {message:'An API key is needed to read screenshots.'};localStorage.setItem('futuresLedgerKey',key)}
+    const prompt2=`This is a screenshot of one day of futures trading. Extract the data and return ONLY JSON: {"date":"YYYY-MM-DD or null","trades":[{"symbol":"","side":"Long|Short","qty":0,"pnl":0}],"micros":0,"net":0}. pnl is profit(+)/loss(-) per trade as displayed. net is the day's total net P&L as displayed (already after commissions). micros is the total number of contracts traded that day (sum of quantities across trades), 0 if not visible. Use 0 for anything not visible; never guess numbers.`;
+    const img=await shrink(file);
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'content-type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-5-5',max_tokens:1500,messages:[{role:'user',content:[{type:'image',source:{type:'base64',media_type:'image/jpeg',data:img}},{type:'text',text:prompt2}]}]})});
+    const j=await res.json();if(!res.ok){if(res.status==401)localStorage.removeItem('futuresLedgerKey');throw {message:(j.error&&j.error.message)||'Request failed.'}}
+    const r=JSON.parse(j.content.map(c=>c.text||'').join('').match(/\{[\s\S]*\}/)[0]);
+    const tq=(r.trades||[]).reduce((t,x)=>t+n(x.qty),0);
+    draft=newDraft({date:r.date||today(),trades:(r.trades||[]).map(t=>({symbol:t.symbol||'',side:/short|sell/i.test(t.side||'')?'Short':'Long',qty:t.qty??'',pnl:t.pnl??''})),micros:r.micros||tq||'',net:r.net??''});
+    status='Check these numbers against your screenshot before saving.';
+  }catch(e){status='!'+(e.message||'Could not read the screenshot.')+' You can still enter the day manually.'}
+  paint(1);
+}
+function dlf(name,text,type){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type}));a.download=name;document.body.appendChild(a);a.click();a.remove()}
+const q=v=>'"'+String(v??'').replace(/"/g,'""')+'"';
+function csv(){
+  const rows=[['Date','Symbol','Side','Day gross','Micros','Day fees','Day net','Tags','Notes']];
+  [...S.entries].sort((a,b)=>a.date.localeCompare(b.date)).forEach(e=>{const T=e.trades&&e.trades.length?e.trades:[{}];
+    T.forEach((t,i)=>rows.push([e.date,t.symbol||'',t.side||'',i?'':e.gross,i?'':e.micros,i?'':e.fees,i?'':e.net,i?'':(e.tags||[]).join('; '),i?'':(e.notes||'')]))});
+  dlf('futures-ledger-trades.csv',rows.map(r=>r.map(q).join(',')).join('\n'),'text/csv');
+}
+function xcsv(){const rows=[['Date','Category','Amount','Note']];[...S.expenses].sort((a,b)=>a.date.localeCompare(b.date)).forEach(x=>rows.push([x.date,x.cat,x.amount,x.note||'']));dlf('futures-ledger-expenses.csv',rows.map(r=>r.map(q).join(',')).join('\n'),'text/csv')}
+
+document.addEventListener('click',e=>{
+  const g=e.target.closest('[data-tab],[data-act],[data-edit],[data-del],[data-side],[data-tag],[data-cat],[data-day],[data-cal],[data-xedit]');if(!g)return;
+  const D=g.dataset;
+  if(D.tab){tab=D.tab;render();fadeApp();window.scrollTo(0,0);return}
+  if(D.cal){cal=new Date(cal.getFullYear(),cal.getMonth()+ +D.cal,1);render();fadeApp();return}
+  if(D.day){const x=S.entries.find(v=>v.date==D.day);draft=x?JSON.parse(JSON.stringify(x)):newDraft({date:D.day});status='';openSheet();paint(1);return}
+  if(D.edit){draft=JSON.parse(JSON.stringify(S.entries.find(v=>v.id==D.edit)));status='';openSheet();paint(1);return}
+  if(D.xedit){xd=JSON.parse(JSON.stringify(S.expenses.find(v=>v.id==D.xedit)));openSheet();paintX();stag();return}
+  if(D.side){const [i,v]=D.side.split(':');draft.trades[+i].side=v;const b=g.parentNode.children;b[0].className=v=='Long'?'on l':'';b[1].className=v=='Short'?'on s':'';return}
+  if(D.tag){const i=draft.tags.indexOf(D.tag);if(i>=0)draft.tags.splice(i,1);else draft.tags.push(D.tag);g.classList.toggle('on');return}
+  if(D.cat){xd.cat=D.cat;[...g.parentNode.children].forEach(c=>c.classList.toggle('on',c===g));return}
+  if(D.del!==undefined){pull();draft.trades.splice(+D.del,1);paint();return}
+  const a=D.act;
+  if(a=='scan')$('#file').click();
+  else if(a=='manual'){draft=newDraft();status='';openSheet();paint(1)}
+  else if(a=='exp'){xd={id:null,date:today(),amount:'',cat:'Platform',note:''};openSheet();paintX();stag()}
+  else if(a=='close'||a=='done')closeSheet();
+  else if(a=='addtrade'){pull();draft.trades.push({symbol:'',side:'Long',qty:'',pnl:''});paint()}
+  else if(a=='csv')csv();else if(a=='xcsv')xcsv();
+  else if(a=='backup')dlf('futures-ledger-backup-'+today()+'.json',JSON.stringify(S),'application/json');
+  else if(a=='restore')$('#bk').click();
+  else if(a=='key'){const k=(prompt('Paste your Anthropic API key (stored only on this device):')||'').trim();if(k)localStorage.setItem('futuresLedgerKey',k)}
+  else if(a=='delete'){if(!draft._c){draft._c=1;g.textContent='Tap again to confirm delete';g.style.color='var(--dn)'}else{S.entries=S.entries.filter(v=>v.id!=draft.id);save();closeSheet();render()}}
+  else if(a=='xdelete'){if(!xd._c){xd._c=1;g.textContent='Tap again to confirm delete';g.style.color='var(--dn)'}else{S.expenses=S.expenses.filter(v=>v.id!=xd.id);save();closeSheet();render()}}
+  else if(a=='xsave'){xd.date=$('#x-date').value||today();xd.amount=Math.abs(n($('#x-amt').value));xd.note=$('#x-note').value;delete xd._c;
+    if(xd.id)S.expenses=S.expenses.map(v=>v.id==xd.id?xd:v);else{xd.id=Date.now().toString(36);S.expenses.push(xd)}save();closeSheet();render()}
+  else if(a=='save'){pull();const mc=n(draft.micros),nt=n(draft.net),fe=+(mc*S.rate).toFixed(2);
+    const o={...draft,micros:mc,fees:fe,net:nt,gross:+(nt+fe).toFixed(2),trades:draft.trades.map(t=>({...t,side:String(t.side||'').toLowerCase().startsWith('s')?'Short':'Long',qty:t.qty,pnl:n(t.pnl)}))};delete o._c;
+    if(o.id)S.entries=S.entries.map(v=>v.id==o.id?o:v);else{o.id=Date.now().toString(36);S.entries.push(o)}
+    save();render();summary(o)}
+});
+document.addEventListener('input',e=>{
+  const el=e.target;
+  if(el.dataset.t!==undefined){draft.trades[+el.dataset.t][el.dataset.k]=el.value;return}
+  if(['f-net','f-micros','f-rate'].includes(el.id))calc();
+  if(el.id=='rc-m'){rmon=el.value||rmon;$('#rc-v').value=S.recon[rmon]??'';rcalc()}
+  if(el.id=='rc-v'){S.recon[rmon]=el.value;save();rcalc()}
+});
+$('#file').addEventListener('change',e=>{const f=e.target.files[0];e.target.value='';if(f)scan(f)});
+$('#bk').addEventListener('change',e=>{const f=e.target.files[0];e.target.value='';if(!f)return;const r=new FileReader();r.onload=()=>{try{const o=JSON.parse(r.result);if(!Array.isArray(o.entries))throw 0;if(confirm('Replace everything in the app with this backup ('+o.entries.length+' days)?')){S=Object.assign({entries:[],expenses:[],recon:{},rate:1.22},o);save();render()}}catch(x){alert('That file is not a valid backup.')}};r.readAsText(f)});
+$('#sheet').addEventListener('click',e=>{if(e.target.id=='sheet')closeSheet()});
+render();
+</script>
+</body>
+</html>
