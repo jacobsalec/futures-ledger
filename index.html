@@ -57,6 +57,7 @@ label{display:block;color:var(--mut);font-size:12px;margin:10px 0 4px}
 @keyframes dr{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}
 .eqline{stroke-dasharray:1;animation:dr 1s ease-out}.eqarea{animation:fo .9s ease-out}
 @keyframes grow{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+#toast{position:fixed;left:16px;right:16px;bottom:calc(76px + env(safe-area-inset-bottom,0px));max-width:528px;margin:0 auto;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;font-size:14px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:9}#toast.on{opacity:1}
 .fade{animation:fi .22s ease-out}
 .sheet.open{animation:fo .2s ease-out}
 .sheet.open .pane{animation:su .28s cubic-bezier(.2,.8,.2,1)}
@@ -75,6 +76,8 @@ label{display:block;color:var(--mut);font-size:12px;margin:10px 0 4px}
 <div class="sheet" id="sheet"><div class="pane" id="pane"></div></div>
 <input type="file" id="file" accept="image/*" multiple hidden>
 <input type="file" id="bk" accept="application/json,.json" hidden>
+<input type="file" id="csvin" accept=".csv,text/csv" multiple hidden>
+<div id="toast"></div>
 <script>
 const $=s=>document.querySelector(s);
 const TAGS=['Followed plan','Overtraded','Revenge trade','FOMO','Early exit'],CATS=['Platform','Data feed','Prop firm fee','Education','Other'];
@@ -183,7 +186,7 @@ function taxHTML(E,y){
     ${tw('Payouts received',pu,pc,'up')}${tw('Trading fees',-f,-f*fx)}${tw('Other expenses',-ex,-ex*fx)}${tw('Net taxable income',nu,nu*fx,cls(nu),1)}${tw('Tax to set aside ('+S.taxPct+'%)',tx,tx*fx,'org')}</div>`}).join('');
   const X=[...S.expenses].sort((a,b)=>b.date.localeCompare(a.date));
   h+=`<div class="lbl" style="margin:18px 0 6px">Expenses</div><div class="card">${X.length?X.map(x=>`<div class="item row" data-xedit="${x.id}"><div><b>${esc(x.cat)}</b><div class="sub" style="margin:0">${fd(x.date,{month:'short',day:'numeric',year:'numeric'})}${x.note?' · '+esc(x.note):''}</div></div><b>${money(n(x.amount))}</b></div>`).join(''):'<div class="msg">Platform, data and prop firm fees, education and similar costs. Ask your accountant what is deductible.</div>'}</div><div class="stack"><button class="btn alt" data-act="exp">Add expense</button></div>`;
-  h+=`<div class="lbl" style="margin:18px 0 6px">Backup and export</div><div class="stack"><button class="btn alt" data-act="backup">Export full backup (JSON)</button><button class="btn alt" data-act="restore">Restore from backup</button><button class="btn alt" data-act="csv">Export trades CSV</button><button class="btn alt" data-act="xcsv">Export expenses CSV</button><button class="btn alt" data-act="wcsv">Export payouts CSV</button><button class="btn alt" data-act="key">Set Anthropic API key</button></div><div class="msg">Your data lives only in this browser. Export a backup regularly, and check totals against your broker's official statements.</div>`;
+  h+=`<div class="lbl" style="margin:18px 0 6px">Backup and export</div><div class="stack"><button class="btn alt" data-act="backup">Export full backup (JSON)</button><button class="btn alt" data-act="restore">Restore from backup</button><button class="btn alt" data-act="csv">Export trades CSV</button><button class="btn alt" data-act="xcsv">Export expenses CSV</button><button class="btn alt" data-act="wcsv">Export payouts CSV</button><button class="btn alt" data-act="csvimp">Import from CSV</button><button class="btn alt" data-act="key">Set Anthropic API key</button></div><div class="msg">Your data lives only in this browser. Export a backup regularly, and check totals against your broker's official statements. To move data between devices, export the CSVs on one and tap Import from CSV on the other. Imports add to what is already there and skip duplicates. Restore from backup replaces everything instead.</div>`;
   return h;
 }
 function reconHTML(){return `<div class="lbl" style="margin:18px 0 6px">Reconcile with your broker</div><div class="card"><label style="margin-top:0">Month</label><input type="month" id="rc-m" value="${rmon}"><label>Broker's net P&amp;L for that month</label><input id="rc-v" inputmode="decimal" value="${esc(S.recon[rmon]??'')}"><div class="msg" id="rc-o"></div></div>`}
@@ -308,6 +311,28 @@ async function scan(files){
   }catch(e){status='!'+(e.message||'Could not read the screenshot.')+' You can still enter the day manually.'}
   paint(1);
 }
+function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>t.classList.remove('on'),5000)}
+function parseCSV(t){t=t.replace(/^\uFEFF/,'');const R=[];let r=[],c='',q=false;for(let i=0;i<t.length;i++){const ch=t[i];if(q){if(ch=='"'){if(t[i+1]=='"'){c+='"';i++}else q=false}else c+=ch}else if(ch=='"')q=true;else if(ch==','){r.push(c);c=''}else if(ch=='\n'||ch=='\r'){if(ch=='\r'&&t[i+1]=='\n')i++;r.push(c);c='';R.push(r);r=[]}else c+=ch}if(c!==''||r.length){r.push(c);R.push(r)}return R.filter(x=>x.some(v=>v!==''))}
+function normDate(v){v=String(v||'').trim();if(/^\d{4}-\d{2}-\d{2}$/.test(v))return v;const d=new Date(v);return isNaN(d)?null:ymd(d)}
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6)}
+function importCSV(text){
+  const R=parseCSV(text);if(R.length<2)return null;const H=R[0].map(h=>h.trim()),res={days:0,exp:0,pay:0,dup:0,bad:0},g=(row,k)=>{const i=H.indexOf(k);return i<0?'':String(row[i]??'')},body=R.slice(1);
+  if(H.includes('Symbol')&&H.includes('Day net')){
+    const sig=e=>[e.date,n(e.net),n(e.micros),n(e.fees),e.notes||'',(e.trades||[]).map(t=>[t.symbol||'',t.side||'',n(t.qty)].join(':')).join(',')].join('|'),seen=new Set(S.entries.map(sig)),out=[];let cur=null;
+    body.forEach(row=>{const d=normDate(g(row,'Date'));if(!d){res.bad++;return}
+      if(g(row,'Day net')!==''){cur={id:uid(),date:d,trades:[],gross:n(g(row,'Day gross')),micros:n(g(row,'Micros')),fees:n(g(row,'Day fees')),net:n(g(row,'Day net')),tags:g(row,'Tags').split(';').map(x=>x.trim()).filter(Boolean),notes:g(row,'Notes')};out.push(cur)}
+      if(!cur)return;const sym=g(row,'Symbol'),qty=g(row,'Trade micros'),pl=g(row,'Trade P&L');
+      if(sym||qty!=='')cur.trades.push({symbol:sym,side:g(row,'Side')||'Long',qty:qty===''?'':n(qty),entry:g(row,'Entry'),exit:g(row,'Exit'),pnl:pl===''?'':n(pl),entryTime:g(row,'Entry time'),exitTime:g(row,'Exit time')})});
+    out.forEach(e=>{e.ntr=e.trades.length||1;const k=sig(e);if(seen.has(k))res.dup++;else{seen.add(k);S.entries.push(e);res.days++}});
+  }else if(H.includes('Category')){
+    const seen=new Set(S.expenses.map(x=>[x.date,n(x.amount),x.cat,x.note||''].join('|')));
+    body.forEach(row=>{const d=normDate(g(row,'Date'));if(!d){res.bad++;return}const x={id:uid(),date:d,amount:Math.abs(n(g(row,'Amount'))),cat:g(row,'Category')||'Other',note:g(row,'Note')},k=[x.date,x.amount,x.cat,x.note].join('|');if(seen.has(k))res.dup++;else{seen.add(k);S.expenses.push(x);res.exp++}});
+  }else if(H.includes('USD amount')){
+    const seen=new Set(S.withdrawals.map(x=>[x.date,n(x.usd),n(x.fx),x.note||''].join('|')));
+    body.forEach(row=>{const d=normDate(g(row,'Date'));if(!d){res.bad++;return}const x={id:uid(),date:d,usd:n(g(row,'USD amount')),fx:n(g(row,'USD to CAD rate')),cad:n(g(row,'CAD amount')),pct:n(g(row,'Set-aside %')),setUsd:n(g(row,'Set aside USD')),setCad:n(g(row,'Set aside CAD')),note:g(row,'Note')},k=[x.date,x.usd,x.fx,x.note].join('|');if(seen.has(k))res.dup++;else{seen.add(k);S.withdrawals.push(x);res.pay++}});
+  }else return null;
+  return res;
+}
 function dlf(name,text,type){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type}));a.download=name;document.body.appendChild(a);a.click();a.remove()}
 const q=v=>'"'+String(v??'').replace(/"/g,'""')+'"';
 function csv(){
@@ -348,6 +373,7 @@ document.addEventListener('click',e=>{
     const cad=+(u*f).toFixed(2);delete wd._c;Object.assign(wd,{usd:u,fx:f,cad,pct:S.taxPct,setUsd:+(u*S.taxPct/100).toFixed(2),setCad:+(cad*S.taxPct/100).toFixed(2)});S.fx=f;
     if(wd.id)S.withdrawals=S.withdrawals.map(v=>v.id==wd.id?wd:v);else{wd.id=Date.now().toString(36);S.withdrawals.push(wd)}save();closeSheet();render()}
   else if(a=='tgfees'){S.deductFees=(S.deductFees===false);save();render()}
+  else if(a=='csvimp')$('#csvin').click();
   else if(a=='close'||a=='done')closeSheet();
   else if(a=='addtrade'){pull();draft.trades.push({symbol:'',side:'Long',qty:'',pnl:''});paint()}
   else if(a=='csv')csv();else if(a=='xcsv')xcsv();
@@ -374,6 +400,12 @@ document.addEventListener('input',e=>{
 });
 document.addEventListener('change',e=>{if(e.target.id=='tx-pct')render();if(e.target.id=='w-date')doFx()});
 $('#file').addEventListener('change',e=>{const f=[...e.target.files];e.target.value='';if(f.length)scan(f)});
+$('#csvin').addEventListener('change',async e=>{const fs=[...e.target.files];e.target.value='';if(!fs.length)return;
+  const T={days:0,exp:0,pay:0,dup:0,bad:0};let unk=0;
+  for(const f of fs){let r=null;try{r=importCSV(await f.text())}catch(x){}if(!r){unk++;continue}for(const k in T)T[k]+=r[k]}
+  save();render();
+  const a=[];if(T.days)a.push(T.days+' day'+(T.days==1?'':'s'));if(T.exp)a.push(T.exp+' expense'+(T.exp==1?'':'s'));if(T.pay)a.push(T.pay+' payout'+(T.pay==1?'':'s'));
+  toast((a.length?'Imported '+a.join(', ')+'.':'Nothing new to import.')+(T.dup?' Skipped '+T.dup+' already here.':'')+(T.bad?' '+T.bad+' row'+(T.bad==1?'':'s')+' had no valid date.':'')+(unk?' '+unk+' file'+(unk==1?'':'s')+" didn't look like a CSV exported from this app.":''))});
 $('#bk').addEventListener('change',e=>{const f=e.target.files[0];e.target.value='';if(!f)return;const r=new FileReader();r.onload=()=>{try{const o=JSON.parse(r.result);if(!Array.isArray(o.entries))throw 0;if(confirm('Replace everything in the app with this backup ('+o.entries.length+' days)?')){S=Object.assign({entries:[],expenses:[],recon:{},rate:1.22,withdrawals:[],taxPct:25,fx:null,deductFees:true},o);save();render()}}catch(x){alert('That file is not a valid backup.')}};r.readAsText(f)});
 $('#sheet').addEventListener('click',e=>{if(e.target.id=='sheet')closeSheet()});
 render();
