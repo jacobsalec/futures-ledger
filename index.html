@@ -22,11 +22,11 @@ h1{font-size:26px;margin:8px 0 2px;font-weight:650;letter-spacing:-.02em}
 .lbl{color:var(--mut);font-size:12px;text-transform:uppercase;letter-spacing:.08em}
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .grid .card{margin:0}.mid{font-size:22px;font-weight:600;margin-top:4px}
-.up{color:var(--up)}.dn{color:var(--dn)}
+.up{color:var(--up)}.org{color:#c98b4a}.dn{color:var(--dn)}
 .row{display:flex;justify-content:space-between;align-items:center;gap:12px}
 .item{padding:14px 0;border-top:1px solid var(--line);cursor:pointer}.item:first-child{border-top:0}
 .nav{position:fixed;left:0;right:0;bottom:0;display:flex;justify-content:center;gap:4px;background:var(--bg);border-top:1px solid var(--line);padding:8px 8px calc(8px + env(safe-area-inset-bottom,0px))}
-.nav button{flex:1;max-width:130px;background:none;border:0;color:var(--mut);padding:10px 4px;border-radius:12px;font:inherit;font-size:14px}
+.nav button{flex:1;max-width:130px;background:none;border:0;color:var(--mut);padding:10px 2px;border-radius:12px;font:inherit;font-size:13px}
 .nav button.on{color:var(--tx);background:var(--card)}
 .btn{background:var(--acc);color:#fff;border:0;border-radius:14px;padding:14px 18px;font:inherit;font-weight:600;width:100%}
 .btn.alt{background:var(--card);color:var(--tx);border:1px solid var(--line)}
@@ -38,9 +38,9 @@ label{display:block;color:var(--mut);font-size:12px;margin:10px 0 4px}
 .sheet{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:flex-end;justify-content:center;z-index:5}
 .sheet.open{display:flex}
 .pane{background:var(--bg);width:100%;max-width:560px;max-height:92%;overflow:auto;border-radius:22px 22px 0 0;padding:18px 16px calc(24px + env(safe-area-inset-bottom,0px))}
-.tr{display:grid;grid-template-columns:1fr auto 28px;gap:8px;margin-bottom:8px;align-items:center}
+.tr{display:grid;grid-template-columns:1fr 64px auto 28px;gap:6px;margin-bottom:8px;align-items:center}
 .seg{display:flex;border:1px solid var(--line);border-radius:12px;overflow:hidden}
-.seg button{background:var(--bg);color:var(--mut);border:0;padding:10px 14px;font:inherit;font-size:14px}
+.seg button{background:var(--bg);color:var(--mut);border:0;padding:10px 11px;font:inherit;font-size:14px}
 .seg .on.l{background:var(--blu);color:#fff}.seg .on.s{background:#77746d;color:#fff}
 .chip{background:var(--card);border:1px solid var(--line);color:var(--mut);border-radius:20px;padding:7px 12px;font:inherit;font-size:13px;margin:0 6px 6px 0}
 .chip.on{background:var(--blu);color:#fff;border-color:var(--blu)}
@@ -54,6 +54,9 @@ label{display:block;color:var(--mut);font-size:12px;margin:10px 0 4px}
 @keyframes fi{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 @keyframes fo{from{opacity:0}to{opacity:1}}
 @keyframes su{from{opacity:0;transform:translateY(40px)}to{opacity:1;transform:none}}
+@keyframes dr{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}
+.eqline{stroke-dasharray:1;animation:dr 1s ease-out}.eqarea{animation:fo .9s ease-out}
+@keyframes grow{from{transform:scaleY(0)}to{transform:scaleY(1)}}
 .fade{animation:fi .22s ease-out}
 .sheet.open{animation:fo .2s ease-out}
 .sheet.open .pane{animation:su .28s cubic-bezier(.2,.8,.2,1)}
@@ -70,12 +73,12 @@ label{display:block;color:var(--mut);font-size:12px;margin:10px 0 4px}
 <div id="app"></div>
 <div class="nav" id="nav"></div>
 <div class="sheet" id="sheet"><div class="pane" id="pane"></div></div>
-<input type="file" id="file" accept="image/*" hidden>
+<input type="file" id="file" accept="image/*" multiple hidden>
 <input type="file" id="bk" accept="application/json,.json" hidden>
 <script>
 const $=s=>document.querySelector(s);
 const TAGS=['Followed plan','Overtraded','Revenge trade','FOMO','Early exit'],CATS=['Platform','Data feed','Prop firm fee','Education','Other'];
-let S={entries:[],expenses:[],recon:{},rate:1.22},tab='home',draft=null,xd=null,cal=new Date(),status='',rmon=null;
+let S={entries:[],expenses:[],recon:{},rate:1.22,withdrawals:[],taxPct:25,fx:null,deductFees:true},wd=null,tab='home',draft=null,xd=null,cal=new Date(),status='',rmon=null;
 try{Object.assign(S,JSON.parse(localStorage.getItem('futuresLedger')||'{}'))}catch(e){}
 const save=()=>{try{localStorage.setItem('futuresLedger',JSON.stringify(S))}catch(e){}};
 const n=v=>{v=parseFloat(String(v).replace(/[^0-9.\-]/g,''));return isNaN(v)?0:v};
@@ -92,7 +95,7 @@ function fadeApp(){const a=$('#app');a.classList.remove('fade');void a.offsetWid
 function render(){
   const E=[...S.entries].sort((a,b)=>b.date.localeCompare(a.date)),t=today(),ym=t.slice(0,7),y=t.slice(0,4);
   const net=p=>sum(E.filter(e=>e.date.startsWith(p)),'net');
-  $('#nav').innerHTML=[['home','Today'],['log','Journal'],['stats','Stats'],['tax','Tax']].map(([k,l])=>`<button data-tab="${k}" class="${tab==k?'on':''}">${l}</button>`).join('');
+  $('#nav').innerHTML=[['home','Today'],['log','Journal'],['stats','Stats'],['pay','Payouts'],['tax','Tax']].map(([k,l])=>`<button data-tab="${k}" class="${tab==k?'on':''}">${l}</button>`).join('');
   let h='';
   if(tab=='home'){const tn=sum(E.filter(e=>e.date==t),'net');
     h=`<h1>Futures Ledger</h1><div class="sub">${new Date().toLocaleDateString(undefined,{weekday:'long',month:'long',day:'numeric'})}</div>
@@ -101,10 +104,11 @@ function render(){
     <div class="card"><div class="lbl">This year</div><div class="mid ${cls(net(y))}">${money(net(y),1)}</div></div></div>
     <div style="height:14px"></div><div class="stack"><button class="btn blue" data-act="scan">Add day from screenshot</button><button class="btn alt" data-act="manual">Enter manually</button><button class="btn alt" data-act="exp">Add expense</button></div>
     ${E.length?`<div class="lbl" style="margin:18px 0 6px">Recent</div><div class="card">${E.slice(0,4).map(row).join('')}</div>`:''}`;
-  }else if(tab=='log'){h=`<h1>Journal</h1><div class="sub">${E.length} logged day${E.length==1?'':'s'}. Tap a date to add or edit.</div>`+calHTML(E)+(E.length?`<div class="card">${E.slice(0,60).map(row).join('')}</div>`:'');
-  }else if(tab=='stats'){h=`<h1>Stats</h1><div class="sub">Across all logged days</div>`+statsHTML(E);
-  }else h=taxHTML(E,y);
-  $('#app').innerHTML=h;if(tab=='tax')rcalc();
+  }else if(tab=='log'){h=`<h1>Journal</h1><div class="sub">${E.length} logged day${E.length==1?'':'s'}. Tap a date to add or edit.</div>`+calHTML(E)+(()=>{const p=cal.getFullYear()+'-'+pad(cal.getMonth()+1),M=E.filter(e=>e.date.startsWith(p)).sort((a,b)=>a.date.localeCompare(b.date));return `<div class="lbl" style="margin:14px 0 6px">${cal.toLocaleDateString(undefined,{month:'long',year:'numeric'})} logs, in date order</div>`+(M.length?`<div class="card">${M.map(row).join('')}</div>`:'<div class="empty">No days logged this month.</div>')})();
+  }else if(tab=='stats'){h=`<h1>Stats</h1><div class="sub">Across all logged days</div>`+statsHTML(E)+reconHTML();
+  }else if(tab=='pay')h=payHTML();
+  else h=taxHTML(E,y);
+  $('#app').innerHTML=h;if(tab=='tax'||tab=='stats')rcalc();if(tab=='pay')refreshFx();
 }
 function row(e){return `<div class="item row" data-edit="${e.id}"><div><b>${fd(e.date,{weekday:'short',month:'short',day:'numeric'})}</b><div class="sub" style="margin:0">${n(e.micros)} micro${n(e.micros)==1?'':'s'} · fees ${money(n(e.fees))}${(e.tags||[]).length?' · '+esc(e.tags.join(', ')):''}</div></div><b class="${cls(n(e.net))}">${money(n(e.net),1)}</b></div>`}
 
@@ -116,31 +120,73 @@ function calHTML(E){
   const mt=Object.values(by).reduce((a,b)=>a+b,0);
   return `<div class="card"><div class="row"><button class="x" data-cal="-1">‹</button><b>${cal.toLocaleDateString(undefined,{month:'long',year:'numeric'})}</b><button class="x" data-cal="1">›</button></div><div class="row" style="margin:4px 0 10px"><span class="lbl">Month net</span><b class="${cls(mt)}">${money(mt,1)}</b></div><div class="cg">${'SMTWTFS'.split('').map(x=>`<div class="lbl" style="text-align:center">${x}</div>`).join('')}${c}</div></div>`;
 }
+function chartHTML(A){
+  const vals=[0],dts=[A[0].date];let c=0;A.forEach(e=>{c+=n(e.net);vals.push(c);dts.push(e.date)});
+  const W=340,H=190,L=46,R=12,T=12,B=26,pw=W-L-R,ph=H-T-B,mn=Math.min(...vals),mx=Math.max(...vals);
+  const raw=((mx-mn)||100)/4,mag=Math.pow(10,Math.floor(Math.log10(raw))),f=raw/mag,step=(f<=1?1:f<=2?2:f<=5?5:10)*mag;
+  const lo=Math.floor(mn/step)*step,hi=Math.max(Math.ceil(mx/step)*step,lo+step);
+  const X=i=>L+(vals.length>1?i*pw/(vals.length-1):0),Y=v=>T+ph-((v-lo)/(hi-lo))*ph;
+  const tick=v=>{const a=Math.abs(v);return (v<0?'−':'')+'$'+(a>=1000?(a/1000).toFixed(a%1000?1:0)+'k':a)};
+  let grid='';const k=Math.round((hi-lo)/step);
+  for(let i=0;i<=k;i++){const v=lo+i*step,y=Y(v).toFixed(1);grid+=`<line x1="${L}" x2="${W-R}" y1="${y}" y2="${y}" stroke="var(--line)" ${Math.abs(v)<1e-9?'':'stroke-dasharray="2 4"'}/><text x="${L-7}" y="${(Y(v)+3.5).toFixed(1)}" text-anchor="end" font-size="10" fill="var(--mut)">${tick(v)}</text>`}
+  const P=vals.map((v,i)=>[X(i),Y(v)]);let d='M'+P[0][0].toFixed(1)+','+P[0][1].toFixed(1);
+  for(let i=0;i<P.length-1;i++){const p0=P[i-1]||P[i],p1=P[i],p2=P[i+1],p3=P[i+2]||p2,t=.17;
+    d+=`C${(p1[0]+(p2[0]-p0[0])*t).toFixed(1)},${(p1[1]+(p2[1]-p0[1])*t).toFixed(1)} ${(p2[0]-(p3[0]-p1[0])*t).toFixed(1)},${(p2[1]-(p3[1]-p1[1])*t).toFixed(1)} ${p2[0].toFixed(1)},${p2[1].toFixed(1)}`}
+  const bot=T+ph,last=P[P.length-1],area=d+`L${last[0].toFixed(1)},${bot}L${P[0][0].toFixed(1)},${bot}Z`;
+  const cnt=Math.min(4,vals.length);let xl='';
+  for(let j=0;j<cnt;j++){const i=Math.round(j*(vals.length-1)/((cnt-1)||1));xl+=`<text x="${X(i).toFixed(1)}" y="${H-6}" text-anchor="${j==0?'start':j==cnt-1?'end':'middle'}" font-size="10" fill="var(--mut)">${fd(dts[i],{month:'short',day:'numeric'})}</text>`}
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="margin-top:10px"><defs><linearGradient id="eqg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6f94bf" stop-opacity=".55"/><stop offset="1" stop-color="#6f94bf" stop-opacity="0"/></linearGradient></defs>${grid}<path d="${area}" fill="url(#eqg)" class="eqarea"/><path d="${d}" pathLength="1" fill="none" stroke="#7aa0cc" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" class="eqline"/><circle cx="${last[0].toFixed(1)}" cy="${last[1].toFixed(1)}" r="7" fill="#7aa0cc" opacity=".25"/><circle cx="${last[0].toFixed(1)}" cy="${last[1].toFixed(1)}" r="3.6" fill="#7aa0cc" stroke="var(--card)" stroke-width="1.5"/>${xl}</svg><div class="row" style="margin-top:6px"><span class="lbl">Total</span><b class="${cls(c)}">${money(c,1)}</b></div>`;
+}
+let wkStart=null;
+const ymd=x=>x.getFullYear()+'-'+pad(x.getMonth()+1)+'-'+pad(x.getDate());
+function monOf(d){const x=new Date(d);x.setHours(12,0,0,0);x.setDate(x.getDate()-((x.getDay()+6)%7));return x}
+function barHTML(E){
+  if(!wkStart)wkStart=monOf(new Date());
+  const days=[...Array(7)].map((_,i)=>{const d=new Date(wkStart);d.setDate(d.getDate()+i);return d});
+  const vals=days.map(d=>{const L=E.filter(e=>e.date==ymd(d));return L.length?sum(L,'net'):null});
+  const real=vals.filter(v=>v!==null),tot=real.reduce((a,b)=>a+b,0);
+  const W=340,H=220,L0=46,R=8,T=20,B=36,pw=W-L0-R,ph=H-T-B,mn=Math.min(0,...real),mx=Math.max(0,...real);
+  const raw=((mx-mn)||100)/4,mag=Math.pow(10,Math.floor(Math.log10(raw))),f=raw/mag,step=(f<=1?1:f<=2?2:f<=5?5:10)*mag;
+  const lo=Math.floor(mn/step)*step,hi=Math.max(Math.ceil(mx/step)*step,lo+step),Y=v=>T+ph-((v-lo)/(hi-lo))*ph,zy=Y(0),bw=pw/7;
+  const tick=v=>{const a=Math.abs(v);return (v<0?'−':'')+'$'+(a>=1000?(a/1000).toFixed(a%1000?1:0)+'k':a)},fmt=v=>(v>0?'+':v<0?'−':'')+'$'+Math.abs(Math.round(v));
+  let g='';const k=Math.round((hi-lo)/step);
+  for(let i=0;i<=k;i++){const v=lo+i*step,y=Y(v).toFixed(1);g+=`<line x1="${L0}" x2="${W-R}" y1="${y}" y2="${y}" stroke="var(--line)" ${Math.abs(v)<1e-9?'':'stroke-dasharray="2 4"'}/><text x="${L0-7}" y="${(Y(v)+3.5).toFixed(1)}" text-anchor="end" font-size="10" fill="var(--mut)">${tick(v)}</text>`}
+  days.forEach((d,i)=>{const v=vals[i],x=L0+i*bw+bw*.18,w=bw*.64,cx=x+w/2;
+    if(v){const up=v>0,h=Math.max(2,Math.abs(Y(v)-zy)),y=up?zy-h:zy;
+      g+=`<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${w.toFixed(1)}" height="${h.toFixed(1)}" rx="4" style="fill:var(${up?'--up':'--dn'});transform-box:fill-box;transform-origin:50% ${up?'100%':'0%'};animation:grow .5s ease-out both;animation-delay:${i*.04}s"/><text x="${cx.toFixed(1)}" y="${(up?y-4:y+h+11).toFixed(1)}" text-anchor="middle" font-size="9.5" style="fill:var(${up?'--up':'--dn'})">${fmt(v)}</text>`}
+    else if(v===0)g+=`<rect x="${x.toFixed(1)}" y="${(zy-1).toFixed(1)}" width="${w.toFixed(1)}" height="2" rx="1" fill="var(--mut)"/>`;
+    g+=`<text x="${cx.toFixed(1)}" y="${H-19}" text-anchor="middle" font-size="10" fill="var(--mut)">${d.toLocaleDateString(undefined,{weekday:'short'})}</text><text x="${cx.toFixed(1)}" y="${H-6}" text-anchor="middle" font-size="9" fill="var(--mut)" opacity=".7">${d.getDate()}</text>`});
+  const end=new Date(wkStart);end.setDate(end.getDate()+6);const cur=ymd(wkStart)==ymd(monOf(new Date())),o={month:'short',day:'numeric'};
+  return `<div class="card"><div class="row"><button class="x" data-wk="-1">‹</button><b>${wkStart.toLocaleDateString(undefined,o)} – ${end.toLocaleDateString(undefined,o)}</b><button class="x" data-wk="1" ${cur?'disabled style="opacity:.25"':''}>›</button></div>
+  <div class="row" style="margin:2px 0 4px"><span class="lbl">Week net · ${real.length} day${real.length==1?'':'s'} logged</span><b class="${cls(tot)}">${money(tot,1)}</b></div>
+  <svg viewBox="0 0 ${W} ${H}" width="100%">${g}</svg></div>`;
+}
 function statsHTML(E){
   if(!E.length)return '<div class="empty">Log a few days to see your stats.</div>';
-  const A=[...E].sort((a,b)=>a.date.localeCompare(b.date)),nets=A.map(e=>n(e.net)),W=nets.filter(v=>v>0),L=nets.filter(v=>v<0);
+  const G={};E.forEach(e=>{const x=G[e.date]||(G[e.date]={date:e.date,net:0,tags:[]});x.net+=n(e.net);(e.tags||[]).forEach(t=>{if(!x.tags.includes(t))x.tags.push(t)})});const A=Object.values(G).sort((a,b)=>a.date.localeCompare(b.date)),nets=A.map(e=>n(e.net)),W=nets.filter(v=>v>0),L=nets.filter(v=>v<0);
   const sw=W.reduce((a,b)=>a+b,0),sl=Math.abs(L.reduce((a,b)=>a+b,0)),avg=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:0;
   let c=0,pk=0,dd=0;const pts=nets.map(v=>c+=v);pts.forEach(v=>{pk=Math.max(pk,v);dd=Math.max(dd,pk-v)});
   const mn=Math.min(0,...pts),mx=Math.max(0,...pts),rg=(mx-mn)||1,w=300,hh=110,st=pts.length>1?w/(pts.length-1):0;
   const line=pts.map((v,i)=>(i*st).toFixed(1)+','+(hh-((v-mn)/rg)*hh).toFixed(1)).join(' '),zy=(hh-((0-mn)/rg)*hh).toFixed(1);
   const rows=[['Win rate',Math.round(W.length/nets.length*100)+'%'],['Average win',money(avg(W)),'up'],['Average loss',money(avg(L)),'dn'],['Profit factor',sl?(sw/sl).toFixed(2):(sw?'∞':'0')],['Max drawdown',money(-dd),'dn'],['Best day',money(Math.max(...nets),1),'up'],['Worst day',money(Math.min(...nets),1),'dn']];
   const tg=TAGS.map(t=>{const X=A.filter(e=>(e.tags||[]).includes(t));return X.length?[t,X.length,sum(X,'net')/X.length]:null}).filter(Boolean);
-  return `<div class="card"><div class="lbl">Equity curve (cumulative net)</div><svg viewBox="0 0 ${w} ${hh}" width="100%" style="margin-top:8px;overflow:visible"><line x1="0" x2="${w}" y1="${zy}" y2="${zy}" stroke="var(--line)" stroke-dasharray="3"/><polyline points="${line}" fill="none" stroke="var(--blu)" stroke-width="2.5" stroke-linejoin="round"/></svg><div class="row" style="margin-top:8px"><span class="lbl">Total</span><b class="${cls(c)}">${money(c,1)}</b></div></div>
+  return `${barHTML(E)}
   <div class="card">${rows.map(([a,v,k])=>`<div class="row item" style="cursor:default"><span>${a}</span><b class="${k||''}">${v}</b></div>`).join('')}</div>`+
   (tg.length?`<div class="card"><div class="lbl" style="margin-bottom:4px">Average net by tag</div>${tg.map(([t,k,a])=>`<div class="row item" style="cursor:default"><span>${t} <span class="lbl">×${k}</span></span><b class="${cls(a)}">${money(a,1)}</b></div>`).join('')}</div>`:'');
 }
 function taxHTML(E,y){
-  const yrs=[...new Set([...E.map(e=>e.date.slice(0,4)),...S.expenses.map(e=>e.date.slice(0,4))])].sort().reverse();if(!yrs.length)yrs.push(y);
-  let h=`<h1>Tax summary</h1><div class="sub">Realized results and expenses by year</div>`+yrs.map(yr=>{
-    const L=E.filter(e=>e.date.startsWith(yr)),g=sum(L,'gross'),f=sum(L,'fees'),ex=sum(S.expenses.filter(e=>e.date.startsWith(yr)),'amount'),w=L.filter(e=>n(e.net)>0).length,l=L.filter(e=>n(e.net)<0).length;
-    return `<div class="card"><div class="row"><b style="font-size:20px">${yr}</b><span class="lbl">${L.length} days · ${sum(L,'micros')} micros · ${w}W / ${l}L</span></div>
-    ${[['Gross P&L',g],['Fees & commissions',-f],['Net trading P&L',g-f],['Other expenses',-ex],['Net after expenses',g-f-ex]].map(([a,v],i)=>`<div class="row item" style="cursor:default"><span>${i>=2?'<b>'+a+'</b>':a}</span><b class="${cls(v)}">${money(v,1)}</b></div>`).join('')}</div>`}).join('');
+  const yrs=[...new Set([...E.map(e=>e.date.slice(0,4)),...S.expenses.map(e=>e.date.slice(0,4)),...S.withdrawals.map(e=>e.date.slice(0,4))])].sort().reverse();if(!yrs.length)yrs.push(y);
+  let h=`<h1>Tax summary</h1><div class="sub">Payouts, expenses and tax set-aside by year</div><div class="card"><div class="row"><span>Subtract trading fees from payouts</span><button class="chip ${S.deductFees===false?'':'on'}" data-act="tgfees" style="margin:0">${S.deductFees===false?'Off':'On'}</button></div></div>`+yrs.map(yr=>{
+    const L=E.filter(e=>e.date.startsWith(yr)),f=S.deductFees===false?0:sum(L,'fees'),P=S.withdrawals.filter(e=>e.date.startsWith(yr)),pu=sum(P,'usd'),pc=sum(P,'cad'),ex=sum(S.expenses.filter(e=>e.date.startsWith(yr)),'amount'),fx=pu?pc/pu:n(S.fx),nu=pu-f-ex,tx=Math.max(0,nu)*S.taxPct/100;
+    const tw=(a,u,c,k,b)=>`<div class="row item" style="cursor:default"><span>${b?'<b>'+a+'</b>':a}</span><div style="text-align:right"><b class="${k||''}">${money(u,b)} USD</b><div class="sub" style="margin:0">${fx?money(c,b)+' CAD':''}</div></div></div>`;
+    return `<div class="card"><div class="row"><b style="font-size:20px">${yr}</b><span class="lbl">${P.length} payout${P.length==1?'':'s'}</span></div><div class="sub" style="margin:2px 0 6px">Taxed when paid out</div>
+    ${tw('Payouts received',pu,pc,'up')}${tw('Trading fees',-f,-f*fx)}${tw('Other expenses',-ex,-ex*fx)}${tw('Net taxable income',nu,nu*fx,cls(nu),1)}${tw('Tax to set aside ('+S.taxPct+'%)',tx,tx*fx,'org')}</div>`}).join('');
   const X=[...S.expenses].sort((a,b)=>b.date.localeCompare(a.date));
   h+=`<div class="lbl" style="margin:18px 0 6px">Expenses</div><div class="card">${X.length?X.map(x=>`<div class="item row" data-xedit="${x.id}"><div><b>${esc(x.cat)}</b><div class="sub" style="margin:0">${fd(x.date,{month:'short',day:'numeric',year:'numeric'})}${x.note?' · '+esc(x.note):''}</div></div><b>${money(n(x.amount))}</b></div>`).join(''):'<div class="msg">Platform, data and prop firm fees, education and similar costs. Ask your accountant what is deductible.</div>'}</div><div class="stack"><button class="btn alt" data-act="exp">Add expense</button></div>`;
-  h+=`<div class="lbl" style="margin:18px 0 6px">Reconcile with your broker</div><div class="card"><label style="margin-top:0">Month</label><input type="month" id="rc-m" value="${rmon}"><label>Broker's net P&amp;L for that month</label><input id="rc-v" inputmode="decimal" value="${esc(S.recon[rmon]??'')}"><div class="msg" id="rc-o"></div></div>`;
-  h+=`<div class="lbl" style="margin:18px 0 6px">Backup and export</div><div class="stack"><button class="btn alt" data-act="backup">Export full backup (JSON)</button><button class="btn alt" data-act="restore">Restore from backup</button><button class="btn alt" data-act="csv">Export trades CSV</button><button class="btn alt" data-act="xcsv">Export expenses CSV</button><button class="btn alt" data-act="key">Set Anthropic API key</button></div><div class="msg">Your data lives only in this browser. Export a backup regularly, and check totals against your broker's official statements.</div>`;
+  h+=`<div class="lbl" style="margin:18px 0 6px">Backup and export</div><div class="stack"><button class="btn alt" data-act="backup">Export full backup (JSON)</button><button class="btn alt" data-act="restore">Restore from backup</button><button class="btn alt" data-act="csv">Export trades CSV</button><button class="btn alt" data-act="xcsv">Export expenses CSV</button><button class="btn alt" data-act="wcsv">Export payouts CSV</button><button class="btn alt" data-act="key">Set Anthropic API key</button></div><div class="msg">Your data lives only in this browser. Export a backup regularly, and check totals against your broker's official statements.</div>`;
   return h;
 }
+function reconHTML(){return `<div class="lbl" style="margin:18px 0 6px">Reconcile with your broker</div><div class="card"><label style="margin-top:0">Month</label><input type="month" id="rc-m" value="${rmon}"><label>Broker's net P&amp;L for that month</label><input id="rc-v" inputmode="decimal" value="${esc(S.recon[rmon]??'')}"><div class="msg" id="rc-o"></div></div>`}
 function rcalc(){
   const o=$('#rc-o');if(!o)return;const v=$('#rc-v').value,lg=sum(S.entries.filter(e=>e.date.startsWith(rmon)),'net');
   if(v.trim()===''){o.className='msg';o.textContent='Logged for this month: '+money(lg,1)+'. Enter your broker figure to compare.';return}
@@ -150,21 +196,22 @@ function rcalc(){
 }
 
 function openSheet(){$('#sheet').classList.add('open')}
-function closeSheet(){$('#sheet').classList.remove('open');draft=null;xd=null;status=''}
-function newDraft(o){return Object.assign({id:null,date:today(),trades:[],micros:'',net:'',notes:'',tags:[]},o)}
+function closeSheet(){$('#sheet').classList.remove('open');draft=null;xd=null;wd=null;status=''}
+function newDraft(o){return Object.assign({id:null,date:today(),trades:[],micros:'',microsPer:'',ntr:1,basis:'gross',net:'',notes:'',tags:[]},o)}
 function stag(){const p=$('#pane');p.classList.remove('stag');void p.offsetWidth;p.classList.add('stag');setTimeout(()=>p.classList.remove('stag'),700)}
 function paint(a){paint0();if(a)stag()}
 function paint0(){
-  const d=draft;if(!d)return;d.tags=d.tags||[];setTimeout(calc,0);
+  const d=draft;if(!d)return;d.tags=d.tags||[];if(!d._n){d._n=1;d.basis=d.basis||'net';if(d.basis=='gross'&&d.gross!==undefined&&d.gross!=='')d.net=d.gross}if(!d.trades||!d.trades.length)d.trades=[{symbol:'',side:'Long',qty:n(d.micros)||'',pnl:''}];if(!d.trades.some(t=>n(t.qty))&&n(d.micros)){const q=+(n(d.micros)/d.trades.length).toFixed(4);d.trades.forEach(t=>t.qty=q)}setTimeout(calc,0);
   $('#pane').innerHTML=`<div class="row"><b style="font-size:20px">${d.id?'Edit day':'Review day'}</b><button class="x" data-act="close">✕</button></div>
   ${status?`<div class="msg ${status.startsWith('!')?'err':''}">${esc(status.replace(/^!/,''))}</div>`:''}
   <label>Date</label><input type="date" id="f-date" value="${esc(d.date)}">
-  <label>Trades (symbol and side)</label>
-  ${d.trades.map((t,i)=>{const sh=String(t.side||'').toLowerCase().startsWith('s');return `<div class="tr"><input data-t="${i}" data-k="symbol" placeholder="Symbol (e.g. MNQ)" value="${esc(t.symbol)}"><div class="seg"><button data-side="${i}:Long" class="${sh?'':'on l'}">Long</button><button data-side="${i}:Short" class="${sh?'on s':''}">Short</button></div><button class="x" data-del="${i}">✕</button></div>`}).join('')}
+  <label>Trades (symbol, micros, long or short)</label>
+  ${d.trades.map((t,i)=>{const sh=String(t.side||'').toLowerCase().startsWith('s');return `<div class="tr"><input data-t="${i}" data-k="symbol" placeholder="Symbol (e.g. MNQ)" value="${esc(t.symbol)}"><input data-t="${i}" data-k="qty" inputmode="decimal" placeholder="Micros" value="${esc(t.qty)}" style="text-align:center;padding-left:4px;padding-right:4px"><div class="seg"><button data-side="${i}:Long" class="${sh?'':'on l'}">Long</button><button data-side="${i}:Short" class="${sh?'on s':''}">Short</button></div><button class="x" data-del="${i}">✕</button></div>`}).join('')}
   <button class="btn alt" style="padding:10px;margin-top:4px" data-act="addtrade">+ Add trade</button>
-  <label>Net P&amp;L (as shown on your platform, after commissions)</label><input id="f-net" inputmode="decimal" value="${esc(d.net)}">
-  <div class="grid"><div><label>Micros traded (round trips)</label><input id="f-micros" inputmode="numeric" value="${esc(d.micros)}"></div><div><label>Fee per micro, round trip ($)</label><input id="f-rate" inputmode="decimal" value="${S.rate}"></div></div>
-  <div class="card" style="margin-top:12px"><div class="row"><span>Fees &amp; commissions</span><b id="o-fees"></b></div><div class="row" style="margin-top:6px"><span>Gross P&amp;L</span><b id="o-gross"></b></div></div>
+  <label>The amount I'm entering is</label><div class="seg"><button style="flex:1" data-basis="net" class="${d.basis=='gross'?'':'on l'}">Net (after fees)</button><button style="flex:1" data-basis="gross" class="${d.basis=='gross'?'on l':''}">Gross (before fees)</button></div>
+  <label id="l-amt">${d.basis=='gross'?'Gross P&amp;L (before commissions)':'Net P&amp;L (as shown on your platform, after commissions)'}</label><input id="f-net" inputmode="decimal" value="${esc(d.net)}">
+  <label>Fee per micro, round trip ($)</label><input id="f-rate" inputmode="decimal" value="${S.rate}">
+  <div class="card" style="margin-top:12px"><div class="row"><span>Total micros</span><b id="o-tm"></b></div><div class="row" style="margin-top:6px"><span>Fees &amp; commissions</span><b id="o-fees"></b></div><div class="row" style="margin-top:6px"><span>Gross P&amp;L</span><b id="o-gross"></b></div><div class="row" style="margin-top:6px"><span>Net P&amp;L (after fees)</span><b id="o-net"></b></div></div>
   <label>Tags</label><div>${TAGS.map(t=>`<button class="chip ${d.tags.includes(t)?'on':''}" data-tag="${t}">${t}</button>`).join('')}</div>
   <label>Notes</label><textarea id="f-notes" rows="3" placeholder="Setups, mistakes, how it felt">${esc(d.notes||'')}</textarea>
   <div class="stack" style="margin-top:16px"><button class="btn blue" data-act="save">Save day</button>${d.id?'<button class="btn alt" data-act="delete">Delete day</button>':''}</div>`;
@@ -172,14 +219,61 @@ function paint0(){
 function view(){
   const o=draft;if(!o)return;
   const r=(a,v,c)=>`<div class="row item" style="cursor:default"><span>${a}</span><b class="${c||''}">${v}</b></div>`;
-  const tr=(o.trades||[]).filter(t=>t.symbol),pen='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg>';
+  const tr=(o.trades||[]).filter(t=>t.symbol||n(t.qty)),pen='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg>';
   $('#pane').innerHTML=`<div class="row"><b style="font-size:19px">${fd(o.date,{weekday:'short',month:'short',day:'numeric',year:'numeric'})}</b><div class="row" style="gap:2px"><button class="editbtn" data-act="editday">${pen} Edit</button><button class="x" data-act="close">✕</button></div></div>
   <div style="text-align:center;padding:14px 0 8px"><div class="lbl">Net P&amp;L</div><div class="big ${cls(n(o.net))}">${money(n(o.net),1)}</div></div>
   <div class="card">${r('Gross P&amp;L',money(n(o.gross),1),cls(n(o.gross)))}${r('Fees &amp; commissions',money(n(o.fees)))}${r('Micros traded',n(o.micros))}</div>
-  ${tr.length?`<div class="card"><div class="lbl" style="margin-bottom:4px">Trades</div>${tr.map(t=>r(esc(t.symbol),esc(t.side||'Long'))).join('')}</div>`:''}
+  ${tr.length?`<div class="card"><div class="lbl" style="margin-bottom:4px">Trades</div>${tr.map(t=>`<div class="row item" style="cursor:default"><div><b>${esc(t.symbol||'Trade')}</b><div class="sub" style="margin:0">${esc(t.side||'Long')}${n(t.qty)?' · '+n(t.qty)+' micro'+(n(t.qty)==1?'':'s'):''}${t.entry?' · '+esc(t.entry)+' → '+esc(t.exit):''}</div></div>${(t.entry||n(t.pnl))?`<b class="${cls(n(t.pnl))}">${money(n(t.pnl),1)}</b>`:''}</div>`).join('')}</div>`:''}
   ${(o.tags||[]).length?`<div class="card"><div class="lbl" style="margin-bottom:8px">Tags</div>${o.tags.map(t=>`<span class="chip on" style="pointer-events:none">${esc(t)}</span>`).join('')}</div>`:''}
   ${o.notes?`<div class="card"><div class="lbl" style="margin-bottom:4px">Notes</div><div style="white-space:pre-wrap">${esc(o.notes)}</div></div>`:''}
-  <div class="stack" style="margin-top:8px"><button class="btn alt" data-act="delete" style="color:var(--dn)">Delete entry</button></div>`;
+  <div class="stack" style="margin-top:8px"><button class="btn blue" data-act="addsame" data-date="${esc(o.date)}">+ Add another entry for this day</button><button class="btn alt" data-act="delete" style="color:var(--dn)">Delete entry</button></div>`;
+  stag();
+}
+function payHTML(){
+  const y=today().slice(0,4),Wy=S.withdrawals.filter(w=>w.date.startsWith(y)),W=[...S.withdrawals].sort((a,b)=>b.date.localeCompare(a.date));
+  const ex=sum(S.expenses.filter(e=>e.date.startsWith(y)),'amount'),net=sum(S.entries.filter(e=>e.date.startsWith(y)),'net')-ex,est=Math.max(0,net)*S.taxPct/100,fx=n(S.fx);
+  const two=(a,u,c,k)=>`<div class="row item" style="cursor:default"><span>${a}</span><div style="text-align:right"><b class="${k||''}">${money(u)} USD</b><div class="sub" style="margin:0">${c==null?'':money(c)+' CAD'}</div></div></div>`;
+  return `<h1>Payouts</h1><div class="sub">Money you take out, and what to set aside for tax</div>
+  <div class="card"><label style="margin-top:0">Tax set-aside rate (%)</label><input id="tx-pct" inputmode="decimal" value="${S.taxPct}"><div class="msg">Use the rate your accountant gives you. 25% is only a starting placeholder.</div></div>
+  <div class="card"><div class="lbl" style="margin-bottom:4px">${y} so far</div>${two('Taken out',sum(Wy,'usd'),sum(Wy,'cad'),'up')}${two('Set aside for tax',sum(Wy,'setUsd'),sum(Wy,'setCad'),'org')}${two('You keep',sum(Wy,'usd')-sum(Wy,'setUsd'),sum(Wy,'cad')-sum(Wy,'setCad'),'up')}</div>
+  <div class="stack"><button class="btn blue" data-act="wadd">Add payout</button></div>
+  <div class="card"><div class="lbl" style="margin-bottom:4px">Payouts</div>${W.length?W.map(w=>`<div class="item row" data-wedit="${w.id}"><div><b>${fd(w.date,{month:'short',day:'numeric',year:'numeric'})}</b><div class="sub" style="margin:0">rate ${n(w.fx).toFixed(4)}${w.note?' · '+esc(w.note):''}</div></div><div style="text-align:right"><b class="up">${money(n(w.usd))} USD</b><div class="sub" style="margin:0">${money(n(w.cad))} CAD</div></div></div>`).join(''):'<div class="msg">No payouts yet.</div>'}</div>
+  `;
+}
+function paintW(){
+  const w=wd;$('#pane').innerHTML=`<div class="row"><b style="font-size:20px">${w.id?'Edit payout':'Add payout'}</b><button class="x" data-act="close">✕</button></div>
+  <label>Date</label><input type="date" id="w-date" value="${esc(w.date)}">
+  <label>Amount taken out (USD)</label><input id="w-amt" inputmode="decimal" value="${esc(w.usd)}">
+  <label>USD to CAD exchange rate</label><input id="w-fx" inputmode="decimal" value="${esc(w.fx)}">
+  <button class="btn alt" style="padding:10px;margin-top:8px" data-act="getfx">Get rate for this date</button><div class="msg" id="w-msg">The rate updates by itself when you pick a date.</div>
+  <div class="card"><div class="row"><span>Amount in CAD</span><b id="o-cad" class="up"></b></div><div class="row" style="margin-top:6px"><span>Set aside (${S.taxPct}%)</span><b id="o-su" class="org"></b></div><div class="row" style="margin-top:6px"><span></span><b id="o-sc" class="org" style="font-weight:500"></b></div><div class="row" style="margin-top:6px"><span>You keep</span><b id="o-ku" class="up"></b></div></div>
+  <label>Note</label><input id="w-note" value="${esc(w.note||'')}" placeholder="Optional">
+  <div class="stack" style="margin-top:16px"><button class="btn blue" data-act="wsave">Save payout</button>${w.id?'<button class="btn alt" data-act="wdelete">Delete payout</button>':''}</div>`;
+  setTimeout(wcalc,0);
+}
+function wcalc(){if(!$('#w-amt'))return;const u=Math.abs(n($('#w-amt').value)),f=n($('#w-fx').value),p=S.taxPct/100;
+  $('#o-cad').textContent=f?money(u*f)+' CAD':'Enter a rate';$('#o-su').textContent=money(u*p)+' USD';$('#o-sc').textContent=f?money(u*f*p)+' CAD':'';$('#o-ku').textContent=money(u*(1-p))+' USD'+(f?' / '+money(u*f*(1-p))+' CAD':'')}
+async function getFx(date){
+  const d=new Date(date+'T12:00'),s0=new Date(d-7*864e5),f=x=>x.getFullYear()+'-'+pad(x.getMonth()+1)+'-'+pad(x.getDate());
+  try{const r=await fetch('https://www.bankofcanada.ca/valet/observations/FXUSDCAD/json?start_date='+f(s0)+'&end_date='+date),j=await r.json(),o=j.observations;if(o&&o.length){const l=o[o.length-1];return{rate:parseFloat(l.FXUSDCAD.v),src:'Bank of Canada, '+l.d}}}catch(e){}
+  try{const r=await fetch('https://api.frankfurter.dev/v1/'+date+'?base=USD&symbols=CAD'),j=await r.json();if(j.rates&&j.rates.CAD)return{rate:j.rates.CAD,src:'European Central Bank, '+j.date}}catch(e){}
+  return null;
+}
+let fxTried=false;
+async function refreshFx(){if(fxTried)return;fxTried=true;const r=await getFx(today());if(r&&r.rate){S.fx=r.rate;save();if(tab=='pay'&&!$('#sheet').classList.contains('open')){const y=window.scrollY;render();window.scrollTo(0,y)}}}
+async function doFx(){
+  const m=$('#w-msg');if(!m)return;m.className='msg';m.textContent='Looking up the rate…';
+  const r=await getFx($('#w-date').value||today());if(!$('#w-msg'))return;
+  if(r&&r.rate){$('#w-fx').value=r.rate.toFixed(4);m.textContent='Rate '+r.rate.toFixed(4)+' ('+r.src+'). Edit it if you use a different rate.'}
+  else{m.className='msg err';m.textContent='Could not look up a rate. Type one in yourself.'}
+  wcalc();
+}
+function dayList(date){
+  const X=S.entries.filter(e=>e.date==date),t=sum(X,'net'),f=sum(X,'fees'),m=sum(X,'micros');
+  $('#pane').innerHTML=`<div class="row"><b style="font-size:19px">${fd(date,{weekday:'short',month:'short',day:'numeric',year:'numeric'})}</b><button class="x" data-act="close">✕</button></div>
+  <div style="text-align:center;padding:14px 0 8px"><div class="lbl">Day total, net</div><div class="big ${cls(t)}">${money(t,1)}</div><div class="sub" style="margin:2px 0 0">${X.length} entries · ${+m.toFixed(4)} micros · fees ${money(f)}</div></div>
+  <div class="card">${X.map((e,i)=>`<div class="item row" data-edit="${e.id}"><div><b>Entry ${i+1}</b><div class="sub" style="margin:0">${n(e.micros)} micro${n(e.micros)==1?'':'s'} · fees ${money(n(e.fees))}${(e.tags||[]).length?' · '+esc(e.tags.join(', ')):''}</div></div><b class="${cls(n(e.net))}">${money(n(e.net),1)}</b></div>`).join('')}</div>
+  <div class="stack"><button class="btn blue" data-act="addsame" data-date="${esc(date)}">+ Add another entry</button></div>`;
   stag();
 }
 function paintX(){
@@ -189,8 +283,8 @@ function paintX(){
   <label>Note</label><input id="x-note" value="${esc(x.note||'')}" placeholder="e.g. monthly data subscription">
   <div class="stack" style="margin-top:16px"><button class="btn red" data-act="xsave">Save expense</button>${x.id?'<button class="btn alt" data-act="xdelete">Delete expense</button>':''}</div>`;
 }
-function pull(){if(!draft)return;draft.date=$('#f-date').value||today();draft.net=$('#f-net').value;draft.micros=$('#f-micros').value;S.rate=n($('#f-rate').value)||S.rate;draft.notes=$('#f-notes').value}
-function calc(){if(!$('#f-net'))return;const m=n($('#f-micros').value),r=n($('#f-rate').value),f=m*r,g=n($('#f-net').value)+f;$('#o-fees').textContent=money(f);$('#o-gross').textContent=money(g,1);$('#o-gross').className=cls(g)}
+function pull(){if(!draft)return;draft.date=$('#f-date').value||today();draft.net=$('#f-net').value;S.rate=n($('#f-rate').value)||S.rate;draft.notes=$('#f-notes').value}
+function calc(){if(!$('#f-net'))return;const m=(draft?draft.trades:[]).reduce((t,x)=>t+n(x.qty),0),r=n($('#f-rate').value),f=m*r,a=n($('#f-net').value),gb=draft&&draft.basis=='gross',g=gb?a:a+f,nt=gb?a-f:a;$('#o-tm').textContent=+m.toFixed(4);$('#o-fees').textContent=money(f);$('#o-gross').textContent=money(g,1);$('#o-gross').className=cls(g);$('#o-net').textContent=money(nt,1);$('#o-net').className=cls(nt)}
 function summary(o){
   const up=o.net>0,dn=o.net<0,msg=up?'Good trading!':dn?'It is what it is.':'Flat day.',sub=up?'Another green day in the books.':dn?'Log it, learn from it, move on.':'No gain, no loss.';
   const r=(a,v,c)=>`<div class="row item" style="cursor:default"><span>${a}</span><b class="${c||''}">${v}</b></div>`;
@@ -198,48 +292,62 @@ function summary(o){
   <div class="card" style="margin-top:12px">${r('Date',fd(o.date,{weekday:'short',month:'short',day:'numeric',year:'numeric'}))}${r('Net P&L',money(o.net,1),cls(o.net))}${r('Micros traded',o.micros)}${r('Fees & commissions',money(o.fees))}${r('Gross P&L',money(o.gross,1),cls(o.gross))}${(o.tags||[]).length?r('Tags',esc(o.tags.join(', '))):''}${o.notes?r('Notes',esc(o.notes)):''}</div><button class="btn" data-act="done">Done</button>`;stag();
 }
 function shrink(file){return new Promise((ok,no)=>{const u=URL.createObjectURL(file),i=new Image();i.onload=()=>{const k=Math.min(1,1800/Math.max(i.width,i.height)),c=document.createElement('canvas');c.width=i.width*k;c.height=i.height*k;c.getContext('2d').drawImage(i,0,0,c.width,c.height);URL.revokeObjectURL(u);ok(c.toDataURL('image/jpeg',.85).split(',')[1])};i.onerror=()=>no({message:'Could not open that image.'});i.src=u})}
-async function scan(file){
+async function scan(files){
   draft=newDraft();status='Reading your screenshot…';openSheet();paint(1);
   try{
     let key=localStorage.getItem('futuresLedgerKey');if(!key){key=(prompt('Paste your Anthropic API key (stored only on this device):')||'').trim();if(!key)throw {message:'An API key is needed to read screenshots.'};localStorage.setItem('futuresLedgerKey',key)}
-    const prompt2=`This is a screenshot of one day of futures trading. Extract the data and return ONLY JSON: {"date":"YYYY-MM-DD or null","trades":[{"symbol":"","side":"Long|Short","qty":0,"pnl":0}],"micros":0,"net":0}. pnl is profit(+)/loss(-) per trade as displayed. net is the day's total net P&L as displayed (already after commissions). micros is the total number of contracts traded that day (sum of quantities across trades), 0 if not visible. Use 0 for anything not visible; never guess numbers.`;
-    const img=await shrink(file);
-    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'content-type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-5-5',max_tokens:1500,messages:[{role:'user',content:[{type:'image',source:{type:'base64',media_type:'image/jpeg',data:img}},{type:'text',text:prompt2}]}]})});
+    const prompt2=`These are screenshots of a futures trading terminal's trade history for one day. Each row is one trade. Columns include Contract (the symbol), Size (number of contracts), Entry Time, Exit Time, Entry Price, Exit Price, P&L (before commissions and fees), Commissions, Fees and Direction (Long or Short). Return ONLY JSON: {"date":"YYYY-MM-DD taken from the entry time, or null","trades":[{"symbol":"","side":"Long|Short","qty":0,"entry":0,"exit":0,"entryTime":"","exitTime":"","pnl":0,"commissions":0,"fees":0}]}. Use plain numbers (remove $ and commas, keep the minus sign on losses). Copy what is shown exactly, use null for anything not visible, never guess, and include every row once.`;
+    const imgs=await Promise.all([...files].map(shrink));
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'content-type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-5-5',max_tokens:3000,messages:[{role:'user',content:[...imgs.map(d=>({type:'image',source:{type:'base64',media_type:'image/jpeg',data:d}})),{type:'text',text:prompt2}]}]})});
     const j=await res.json();if(!res.ok){if(res.status==401)localStorage.removeItem('futuresLedgerKey');throw {message:(j.error&&j.error.message)||'Request failed.'}}
-    const r=JSON.parse(j.content.map(c=>c.text||'').join('').match(/\{[\s\S]*\}/)[0]);
-    const tq=(r.trades||[]).reduce((t,x)=>t+n(x.qty),0);
-    draft=newDraft({date:r.date||today(),trades:(r.trades||[]).map(t=>({symbol:t.symbol||'',side:/short|sell/i.test(t.side||'')?'Short':'Long',qty:t.qty??'',pnl:t.pnl??''})),micros:r.micros||tq||'',net:r.net??''});
-    status='Check these numbers against your screenshot before saving.';
+    const r=JSON.parse(j.content.map(c=>c.text||'').join('').match(/\{[\s\S]*\}/)[0]),T=r.trades||[];
+    if(!T.length)throw {message:'No trades found in that screenshot.'};
+    const gross=+T.reduce((t,x)=>t+n(x.pnl),0).toFixed(2),q=T.reduce((t,x)=>t+n(x.qty),0),shown=+T.reduce((t,x)=>t+Math.abs(n(x.commissions))+Math.abs(n(x.fees)),0).toFixed(2),mine=+(q*S.rate).toFixed(2);
+    draft=newDraft({date:r.date||today(),basis:'gross',net:gross,trades:T.map(t=>({symbol:t.symbol||'',side:/short|sell/i.test(t.side||'')?'Short':'Long',qty:t.qty??'',pnl:t.pnl??'',entry:t.entry??'',exit:t.exit??'',entryTime:t.entryTime||'',exitTime:t.exitTime||''}))});
+    status='Read '+T.length+' trade'+(T.length==1?'':'s')+'. The P&L column is before fees, so it is entered as Gross.'+(shown?(Math.abs(shown-mine)<.05?' Fees match your screenshot ('+money(shown)+').':' Your screenshot shows '+money(shown)+' in commissions and fees, but your rate gives '+money(mine)+'. Check the fee per micro.'):'')+' Check the numbers before saving.';
   }catch(e){status='!'+(e.message||'Could not read the screenshot.')+' You can still enter the day manually.'}
   paint(1);
 }
 function dlf(name,text,type){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type}));a.download=name;document.body.appendChild(a);a.click();a.remove()}
 const q=v=>'"'+String(v??'').replace(/"/g,'""')+'"';
 function csv(){
-  const rows=[['Date','Symbol','Side','Day gross','Micros','Day fees','Day net','Tags','Notes']];
+  const rows=[['Date','Symbol','Side','Trade micros','Entry','Exit','Trade P&L','Entry time','Exit time','Day gross','Micros','Day fees','Day net','Tags','Notes']];
   [...S.entries].sort((a,b)=>a.date.localeCompare(b.date)).forEach(e=>{const T=e.trades&&e.trades.length?e.trades:[{}];
-    T.forEach((t,i)=>rows.push([e.date,t.symbol||'',t.side||'',i?'':e.gross,i?'':e.micros,i?'':e.fees,i?'':e.net,i?'':(e.tags||[]).join('; '),i?'':(e.notes||'')]))});
+    T.forEach((t,i)=>rows.push([e.date,t.symbol||'',t.side||'',t.qty??'',t.entry??'',t.exit??'',t.pnl??'',t.entryTime||'',t.exitTime||'',i?'':e.gross,i?'':e.micros,i?'':e.fees,i?'':e.net,i?'':(e.tags||[]).join('; '),i?'':(e.notes||'')]))});
   dlf('futures-ledger-trades.csv',rows.map(r=>r.map(q).join(',')).join('\n'),'text/csv');
 }
 function xcsv(){const rows=[['Date','Category','Amount','Note']];[...S.expenses].sort((a,b)=>a.date.localeCompare(b.date)).forEach(x=>rows.push([x.date,x.cat,x.amount,x.note||'']));dlf('futures-ledger-expenses.csv',rows.map(r=>r.map(q).join(',')).join('\n'),'text/csv')}
 
 document.addEventListener('click',e=>{
-  const g=e.target.closest('[data-tab],[data-act],[data-edit],[data-del],[data-side],[data-tag],[data-cat],[data-day],[data-cal],[data-xedit]');if(!g)return;
+  const g=e.target.closest('[data-tab],[data-act],[data-edit],[data-del],[data-side],[data-tag],[data-cat],[data-day],[data-cal],[data-xedit],[data-wedit],[data-basis],[data-wk]');if(!g)return;
   const D=g.dataset;
   if(D.tab){tab=D.tab;render();fadeApp();window.scrollTo(0,0);return}
   if(D.cal){cal=new Date(cal.getFullYear(),cal.getMonth()+ +D.cal,1);render();fadeApp();return}
-  if(D.day){const x=S.entries.find(v=>v.date==D.day);status='';if(x){draft=JSON.parse(JSON.stringify(x));openSheet();view()}else{draft=newDraft({date:D.day});openSheet();paint(1)}return}
+  if(D.day){const X=S.entries.filter(v=>v.date==D.day);status='';if(X.length>1){draft=null;openSheet();dayList(D.day)}else if(X.length){draft=JSON.parse(JSON.stringify(X[0]));openSheet();view()}else{draft=newDraft({date:D.day});openSheet();paint(1)}return}
   if(D.edit){draft=JSON.parse(JSON.stringify(S.entries.find(v=>v.id==D.edit)));status='';openSheet();view();return}
+  if(D.wedit){wd=JSON.parse(JSON.stringify(S.withdrawals.find(v=>v.id==D.wedit)));openSheet();paintW();stag();return}
   if(D.xedit){xd=JSON.parse(JSON.stringify(S.expenses.find(v=>v.id==D.xedit)));openSheet();paintX();stag();return}
+  if(D.basis){draft.basis=D.basis;[...g.parentNode.children].forEach(b=>b.className=b===g?'on l':'');$('#l-amt').textContent=D.basis=='gross'?'Gross P&L (before commissions)':'Net P&L (as shown on your platform, after commissions)';calc();return}
+  if(D.wk){if(g.disabled)return;wkStart.setDate(wkStart.getDate()+7*+D.wk);render();return}
   if(D.side){const [i,v]=D.side.split(':');draft.trades[+i].side=v;const b=g.parentNode.children;b[0].className=v=='Long'?'on l':'';b[1].className=v=='Short'?'on s':'';return}
   if(D.tag){const i=draft.tags.indexOf(D.tag);if(i>=0)draft.tags.splice(i,1);else draft.tags.push(D.tag);g.classList.toggle('on');return}
   if(D.cat){xd.cat=D.cat;[...g.parentNode.children].forEach(c=>c.classList.toggle('on',c===g));return}
-  if(D.del!==undefined){pull();draft.trades.splice(+D.del,1);paint();return}
+  if(D.del!==undefined){pull();draft.trades.splice(+D.del,1);if(!draft.trades.length)draft.micros='';paint();return}
   const a=D.act;
   if(a=='scan')$('#file').click();
   else if(a=='manual'){draft=newDraft();status='';openSheet();paint(1)}
   else if(a=='exp'){xd={id:null,date:today(),amount:'',cat:'Platform',note:''};openSheet();paintX();stag()}
   else if(a=='editday'){status='';paint(1)}
+  else if(a=='addsame'){draft=newDraft({date:D.date});status='';paint(1)}
+  else if(a=='wadd'){wd={id:null,date:today(),usd:'',fx:S.fx||'',note:''};openSheet();paintW();stag();doFx()}
+  else if(a=='getfx')doFx();
+  else if(a=='wcsv'){const rows=[['Date','USD amount','USD to CAD rate','CAD amount','Set-aside %','Set aside USD','Set aside CAD','Note']];[...S.withdrawals].sort((a,b)=>a.date.localeCompare(b.date)).forEach(w=>rows.push([w.date,w.usd,w.fx,w.cad,w.pct,w.setUsd,w.setCad,w.note||'']));dlf('futures-ledger-payouts.csv',rows.map(r=>r.map(q).join(',')).join('\n'),'text/csv')}
+  else if(a=='wdelete'){if(!wd._c){wd._c=1;g.textContent='Tap again to confirm delete';g.style.color='var(--dn)'}else{S.withdrawals=S.withdrawals.filter(v=>v.id!=wd.id);save();closeSheet();render()}}
+  else if(a=='wsave'){wd.date=$('#w-date').value||today();wd.note=$('#w-note').value;const u=Math.abs(n($('#w-amt').value)),f=n($('#w-fx').value);
+    if(!u||!f){$('#w-msg').className='msg err';$('#w-msg').textContent='Enter the amount and an exchange rate first.';return}
+    const cad=+(u*f).toFixed(2);delete wd._c;Object.assign(wd,{usd:u,fx:f,cad,pct:S.taxPct,setUsd:+(u*S.taxPct/100).toFixed(2),setCad:+(cad*S.taxPct/100).toFixed(2)});S.fx=f;
+    if(wd.id)S.withdrawals=S.withdrawals.map(v=>v.id==wd.id?wd:v);else{wd.id=Date.now().toString(36);S.withdrawals.push(wd)}save();closeSheet();render()}
+  else if(a=='tgfees'){S.deductFees=(S.deductFees===false);save();render()}
   else if(a=='close'||a=='done')closeSheet();
   else if(a=='addtrade'){pull();draft.trades.push({symbol:'',side:'Long',qty:'',pnl:''});paint()}
   else if(a=='csv')csv();else if(a=='xcsv')xcsv();
@@ -250,20 +358,23 @@ document.addEventListener('click',e=>{
   else if(a=='xdelete'){if(!xd._c){xd._c=1;g.textContent='Tap again to confirm delete';g.style.color='var(--dn)'}else{S.expenses=S.expenses.filter(v=>v.id!=xd.id);save();closeSheet();render()}}
   else if(a=='xsave'){xd.date=$('#x-date').value||today();xd.amount=Math.abs(n($('#x-amt').value));xd.note=$('#x-note').value;delete xd._c;
     if(xd.id)S.expenses=S.expenses.map(v=>v.id==xd.id?xd:v);else{xd.id=Date.now().toString(36);S.expenses.push(xd)}save();closeSheet();render()}
-  else if(a=='save'){pull();const mc=n(draft.micros),nt=n(draft.net),fe=+(mc*S.rate).toFixed(2);
-    const o={...draft,micros:mc,fees:fe,net:nt,gross:+(nt+fe).toFixed(2),trades:draft.trades.map(t=>({...t,side:String(t.side||'').toLowerCase().startsWith('s')?'Short':'Long',qty:t.qty,pnl:n(t.pnl)}))};delete o._c;
+  else if(a=='save'){pull();const kept=draft.trades.filter(t=>t.symbol||n(t.qty)),mc=+kept.reduce((t,x)=>t+n(x.qty),0).toFixed(4),amt=n(draft.net),fe=+(mc*S.rate).toFixed(2),gb=draft.basis=='gross',nt=gb?+(amt-fe).toFixed(2):amt,gr=gb?amt:+(amt+fe).toFixed(2);
+    const o={...draft,micros:mc,ntr:kept.length||1,fees:fe,net:nt,gross:gr,basis:draft.basis||'net',trades:kept.map(t=>({...t,side:String(t.side||'').toLowerCase().startsWith('s')?'Short':'Long',qty:n(t.qty),pnl:n(t.pnl)}))};delete o._c;delete o._n;
     if(o.id)S.entries=S.entries.map(v=>v.id==o.id?o:v);else{o.id=Date.now().toString(36);S.entries.push(o)}
     save();render();summary(o)}
 });
 document.addEventListener('input',e=>{
   const el=e.target;
-  if(el.dataset.t!==undefined){draft.trades[+el.dataset.t][el.dataset.k]=el.value;return}
-  if(['f-net','f-micros','f-rate'].includes(el.id))calc();
+  if(el.dataset.t!==undefined){draft.trades[+el.dataset.t][el.dataset.k]=el.value;if(el.dataset.k=='qty')calc();return}
+  if(['f-net','f-micros','f-ntr','f-rate'].includes(el.id))calc();
+  if(['w-amt','w-fx'].includes(el.id))wcalc();
+  if(el.id=='tx-pct'){S.taxPct=n(el.value);save()}
   if(el.id=='rc-m'){rmon=el.value||rmon;$('#rc-v').value=S.recon[rmon]??'';rcalc()}
   if(el.id=='rc-v'){S.recon[rmon]=el.value;save();rcalc()}
 });
-$('#file').addEventListener('change',e=>{const f=e.target.files[0];e.target.value='';if(f)scan(f)});
-$('#bk').addEventListener('change',e=>{const f=e.target.files[0];e.target.value='';if(!f)return;const r=new FileReader();r.onload=()=>{try{const o=JSON.parse(r.result);if(!Array.isArray(o.entries))throw 0;if(confirm('Replace everything in the app with this backup ('+o.entries.length+' days)?')){S=Object.assign({entries:[],expenses:[],recon:{},rate:1.22},o);save();render()}}catch(x){alert('That file is not a valid backup.')}};r.readAsText(f)});
+document.addEventListener('change',e=>{if(e.target.id=='tx-pct')render();if(e.target.id=='w-date')doFx()});
+$('#file').addEventListener('change',e=>{const f=[...e.target.files];e.target.value='';if(f.length)scan(f)});
+$('#bk').addEventListener('change',e=>{const f=e.target.files[0];e.target.value='';if(!f)return;const r=new FileReader();r.onload=()=>{try{const o=JSON.parse(r.result);if(!Array.isArray(o.entries))throw 0;if(confirm('Replace everything in the app with this backup ('+o.entries.length+' days)?')){S=Object.assign({entries:[],expenses:[],recon:{},rate:1.22,withdrawals:[],taxPct:25,fx:null,deductFees:true},o);save();render()}}catch(x){alert('That file is not a valid backup.')}};r.readAsText(f)});
 $('#sheet').addEventListener('click',e=>{if(e.target.id=='sheet')closeSheet()});
 render();
 </script>
