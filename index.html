@@ -65,6 +65,16 @@ label{display:block;color:var(--mut);font-size:12px;margin:10px 0 4px}
 .stag>:nth-child(1){animation-delay:0s}.stag>:nth-child(2){animation-delay:.03s}.stag>:nth-child(3){animation-delay:.06s}.stag>:nth-child(4){animation-delay:.09s}.stag>:nth-child(5){animation-delay:.12s}.stag>:nth-child(6){animation-delay:.15s}.stag>:nth-child(7){animation-delay:.18s}.stag>:nth-child(8){animation-delay:.21s}
 .stag .item{animation:fi .3s ease-out both;animation-delay:.12s}.stag .item:nth-child(2){animation-delay:.2s}.stag .item:nth-child(3){animation-delay:.28s}.stag .item:nth-child(4){animation-delay:.36s}.stag .item:nth-child(5){animation-delay:.44s}.stag .item:nth-child(n+6){animation-delay:.5s}
 .editbtn{display:flex;align-items:center;gap:6px;background:var(--card);border:1px solid var(--line);color:var(--tx);border-radius:12px;padding:8px 12px;font:inherit;font-size:14px}
+.sheet.closing{animation:fx .2s ease-in forwards}
+.sheet.closing .pane{animation:sd .22s cubic-bezier(.4,0,1,1) forwards}
+@keyframes fx{from{opacity:1}to{opacity:0}}
+@keyframes sd{from{opacity:1;transform:none}to{opacity:0;transform:translateY(40px)}}
+#app{transition:opacity .11s ease,transform .11s ease}#app.out{opacity:0;transform:translateY(-6px)}
+.odo{display:inline-flex;height:1.15em;line-height:1.15;vertical-align:bottom;font-variant-numeric:tabular-nums;white-space:pre}
+.odo .dg{display:block;height:1.15em;overflow:hidden}
+.odo .st{display:flex;flex-direction:column}
+.odo .st i{display:block;font-style:normal;height:1.15em;line-height:1.15}
+.odo .ch{display:block;height:1.15em}
 .btn{transition:transform .12s,opacity .12s}.btn:active{transform:scale(.98)}
 .nav button,.chip,.seg button{transition:background .15s,color .15s}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
@@ -94,24 +104,54 @@ const sum=(a,k)=>a.reduce((t,e)=>t+n(e[k]),0);
 const fd=(d,o)=>new Date(d+'T12:00').toLocaleDateString(undefined,o);
 rmon=today().slice(0,7);
 
+const odo=(k,t)=>`<span class="odo" data-k="${k}" data-v="${esc(t)}">${t}</span>`,lastVal={};
+const digitsOf=t=>String(t).replace(/[^0-9]/g,'').split('').map(Number),numOf=t=>{const v=parseFloat(String(t).replace(/−/g,'-').replace(/[^0-9.\-]/g,''));return isNaN(v)?0:v};
+const ROWS=[...Array(30)].map((_,j)=>'<i>'+(j%10)+'</i>').join(''),HH=1.15;
+function wh(start,o){return `<span class="dg"${o.gh?' data-gh="1"':''}${o.nw?' data-nw="1"':''} style="${o.nw?'max-width:0;opacity:0':o.gh?'max-width:1ch;opacity:1':''}"><span class="st"${o.an?' data-an="1"':''} data-i="${o.i}" data-d="${o.d}" style="transform:translateY(-${start*HH}em)">${ROWS}</span></span>`}
+function holdHTML(t){let h='';for(const ch of String(t))h+=/[0-9]/.test(ch)?wh(10+ +ch,{i:0,d:+ch}):`<span class="ch">${ch}</span>`;return h}
+function rollAll(){
+  const open=$('#sheet').classList.contains('open');
+  document.querySelectorAll('.odo').forEach(e=>{
+    if(e.dataset.done)return;
+    const k=e.dataset.k,nv=e.dataset.v,ov=lastVal[k];
+    if(open){e.innerHTML=holdHTML(ov===undefined?nv:ov);e.setAttribute('aria-label',nv);return}
+    e.dataset.done='1';lastVal[k]=nv;
+    const first=ov===undefined,od=digitsOf(first?nv.replace(/[0-9]/g,'0'):ov),nd=digitsOf(nv),up=numOf(nv)>=numOf(first?'0':ov),change=first||nv!==ov,extra=Math.max(0,od.length-nd.length),off=nd.length-od.length;
+    let html='',di=0,ghosts=false;
+    for(const ch of nv){
+      if(/[0-9]/.test(ch)){
+        if(!ghosts){ghosts=true;if(!first)for(let g=0;g<extra;g++)html+=wh(10+(change?od[g]:0),{an:change,i:g,d:0,gh:change})}
+        const d=+ch,o=od[di-off]??0;
+        html+=wh(10+(change?o:d),{an:change,i:(first?0:extra)+di,d,nw:change&&!first&&di<off});di++}
+      else html+=`<span class="ch">${ch}</span>`}
+    e.innerHTML=html;e.setAttribute('aria-label',nv);
+    const A=e.querySelectorAll('.st[data-an]');if(!A.length)return;
+    void e.offsetWidth;
+    A.forEach(st=>{const d=+st.dataset.d,i=+st.dataset.i,dur=.55,dl=i*.05;
+      st.style.transition=`transform ${dur}s cubic-bezier(.15,.85,.25,1) ${dl}s`;st.style.transform=`translateY(-${(up?20+d:d)*HH}em)`;
+      setTimeout(()=>{st.style.transition='none';st.style.transform=`translateY(-${(10+d)*HH}em)`},(dur+dl)*1000+80)});
+    e.querySelectorAll('[data-gh],[data-nw]').forEach(dg=>{const gh=dg.dataset.gh;dg.style.transition='max-width .45s ease,opacity .45s ease';dg.style.maxWidth=gh?'0':'1ch';dg.style.opacity=gh?'0':'1'});
+  });
+}
+function renderNav(){$('#nav').innerHTML=[['home','Today'],['log','Journal'],['stats','Stats'],['pay','Payouts'],['tax','Tax']].map(([k,l])=>`<button data-tab="${k}" class="${tab==k?'on':''}">${l}</button>`).join('')}
 function fadeApp(){const a=$('#app');a.classList.remove('fade');void a.offsetWidth;a.classList.add('fade')}
 function render(){
   const E=[...S.entries].sort((a,b)=>b.date.localeCompare(a.date)),t=today(),ym=t.slice(0,7),y=t.slice(0,4);
   const net=p=>sum(E.filter(e=>e.date.startsWith(p)),'net');
-  $('#nav').innerHTML=[['home','Today'],['log','Journal'],['stats','Stats'],['pay','Payouts'],['tax','Tax']].map(([k,l])=>`<button data-tab="${k}" class="${tab==k?'on':''}">${l}</button>`).join('');
+  renderNav();
   let h='';
   if(tab=='home'){const tn=sum(E.filter(e=>e.date==t),'net');
     h=`<h1>Futures Ledger</h1><div class="sub">${new Date().toLocaleDateString(undefined,{weekday:'long',month:'long',day:'numeric'})}</div>
-    <div class="card"><div class="lbl">Today, net</div><div class="big ${cls(tn)}">${money(tn,1)}</div></div>
-    <div class="grid"><div class="card"><div class="lbl">This month</div><div class="mid ${cls(net(ym))}">${money(net(ym),1)}</div></div>
-    <div class="card"><div class="lbl">This year</div><div class="mid ${cls(net(y))}">${money(net(y),1)}</div></div></div>
+    <div class="card"><div class="lbl">Today, net</div><div class="big ${cls(tn)}">${odo('today',money(tn,1))}</div></div>
+    <div class="grid"><div class="card"><div class="lbl">This month</div><div class="mid ${cls(net(ym))}">${odo('month',money(net(ym),1))}</div></div>
+    <div class="card"><div class="lbl">This year</div><div class="mid ${cls(net(y))}">${odo('year',money(net(y),1))}</div></div></div>
     <div style="height:14px"></div><div class="stack"><button class="btn blue" data-act="scan">Add day from screenshot</button><button class="btn alt" data-act="manual">Enter manually</button><button class="btn alt" data-act="exp">Add expense</button></div>
     ${E.length?`<div class="lbl" style="margin:18px 0 6px">Recent</div><div class="card">${E.slice(0,4).map(row).join('')}</div>`:''}`;
   }else if(tab=='log'){h=`<h1>Journal</h1><div class="sub">${E.length} logged day${E.length==1?'':'s'}. Tap a date to add or edit.</div>`+calHTML(E)+(()=>{const p=cal.getFullYear()+'-'+pad(cal.getMonth()+1),M=E.filter(e=>e.date.startsWith(p)).sort((a,b)=>a.date.localeCompare(b.date));return `<div class="lbl" style="margin:14px 0 6px">${cal.toLocaleDateString(undefined,{month:'long',year:'numeric'})} logs, in date order</div>`+(M.length?`<div class="card">${M.map(row).join('')}</div>`:'<div class="empty">No days logged this month.</div>')})();
   }else if(tab=='stats'){h=`<h1>Stats</h1><div class="sub">Across all logged days</div>`+statsHTML(E)+reconHTML();
   }else if(tab=='pay')h=payHTML();
   else h=taxHTML(E,y);
-  $('#app').innerHTML=h;if(tab=='tax'||tab=='stats')rcalc();if(tab=='pay')refreshFx();
+  $('#app').innerHTML=h;if(tab=='tax'||tab=='stats')rcalc();if(tab=='pay')refreshFx();rollAll();
 }
 function row(e){return `<div class="item row" data-edit="${e.id}"><div><b>${fd(e.date,{weekday:'short',month:'short',day:'numeric'})}</b><div class="sub" style="margin:0">${n(e.micros)} micro${n(e.micros)==1?'':'s'} · fees ${money(n(e.fees))}${(e.tags||[]).length?' · '+esc(e.tags.join(', ')):''}</div></div><b class="${cls(n(e.net))}">${money(n(e.net),1)}</b></div>`}
 
@@ -121,7 +161,7 @@ function calHTML(E){
   let c='';for(let i=0;i<first;i++)c+='<div></div>';
   for(let d=1;d<=dim;d++){const k=p+'-'+pad(d),v=by[k];c+=`<div class="cd ${v===undefined?'':v>0?'up':v<0?'dn':''}${k==today()?' td':''}" data-day="${k}">${d}${v===undefined?'':`<small>${Math.round(v)}</small>`}</div>`}
   const mt=Object.values(by).reduce((a,b)=>a+b,0);
-  return `<div class="card"><div class="row"><button class="x" data-cal="-1">‹</button><b>${cal.toLocaleDateString(undefined,{month:'long',year:'numeric'})}</b><button class="x" data-cal="1">›</button></div><div class="row" style="margin:4px 0 10px"><span class="lbl">Month net</span><b class="${cls(mt)}">${money(mt,1)}</b></div><div class="cg">${'SMTWTFS'.split('').map(x=>`<div class="lbl" style="text-align:center">${x}</div>`).join('')}${c}</div></div>`;
+  return `<div class="card"><div class="row"><button class="x" data-cal="-1">‹</button><b>${cal.toLocaleDateString(undefined,{month:'long',year:'numeric'})}</b><button class="x" data-cal="1">›</button></div><div class="row" style="margin:4px 0 10px"><span class="lbl">Month net</span><b class="${cls(mt)}">${odo('mnet',money(mt,1))}</b></div><div class="cg">${'SMTWTFS'.split('').map(x=>`<div class="lbl" style="text-align:center">${x}</div>`).join('')}${c}</div></div>`;
 }
 function chartHTML(A){
   const vals=[0],dts=[A[0].date];let c=0;A.forEach(e=>{c+=n(e.net);vals.push(c);dts.push(e.date)});
@@ -161,7 +201,7 @@ function barHTML(E){
     g+=`<text x="${cx.toFixed(1)}" y="${H-19}" text-anchor="middle" font-size="10" fill="var(--mut)">${d.toLocaleDateString(undefined,{weekday:'short'})}</text><text x="${cx.toFixed(1)}" y="${H-6}" text-anchor="middle" font-size="9" fill="var(--mut)" opacity=".7">${d.getDate()}</text>`});
   const end=new Date(wkStart);end.setDate(end.getDate()+6);const cur=ymd(wkStart)==ymd(monOf(new Date())),o={month:'short',day:'numeric'};
   return `<div class="card"><div class="row"><button class="x" data-wk="-1">‹</button><b>${wkStart.toLocaleDateString(undefined,o)} – ${end.toLocaleDateString(undefined,o)}</b><button class="x" data-wk="1" ${cur?'disabled style="opacity:.25"':''}>›</button></div>
-  <div class="row" style="margin:2px 0 4px"><span class="lbl">Week net · ${real.length} day${real.length==1?'':'s'} logged</span><b class="${cls(tot)}">${money(tot,1)}</b></div>
+  <div class="row" style="margin:2px 0 4px"><span class="lbl">Week net · ${real.length} day${real.length==1?'':'s'} logged</span><b class="${cls(tot)}">${odo('wnet',money(tot,1))}</b></div>
   <svg viewBox="0 0 ${W} ${H}" width="100%">${g}</svg></div>`;
 }
 function statsHTML(E){
@@ -198,8 +238,9 @@ function rcalc(){
   else{o.className='msg err';o.textContent='Off by '+money(d,1)+': logged '+money(lg,1)+' vs broker '+money(n(v),1)+'. Look for missed days or wrong figures.'}
 }
 
-function openSheet(){$('#sheet').classList.add('open')}
-function closeSheet(){$('#sheet').classList.remove('open');draft=null;xd=null;wd=null;status=''}
+let closeT=null;
+function openSheet(){clearTimeout(closeT);const s=$('#sheet');s.classList.remove('closing');s.classList.add('open')}
+function closeSheet(){const s=$('#sheet');draft=null;xd=null;wd=null;status='';if(!s.classList.contains('open')||s.classList.contains('closing'))return;s.classList.add('closing');closeT=setTimeout(()=>{s.classList.remove('open','closing');rollAll()},220)}
 function newDraft(o){return Object.assign({id:null,date:today(),trades:[],micros:'',microsPer:'',ntr:1,basis:'gross',net:'',notes:'',tags:[]},o)}
 function stag(){const p=$('#pane');p.classList.remove('stag');void p.offsetWidth;p.classList.add('stag');setTimeout(()=>p.classList.remove('stag'),700)}
 function paint(a){paint0();if(a)stag()}
@@ -346,7 +387,7 @@ function xcsv(){const rows=[['Date','Category','Amount','Note']];[...S.expenses]
 document.addEventListener('click',e=>{
   const g=e.target.closest('[data-tab],[data-act],[data-edit],[data-del],[data-side],[data-tag],[data-cat],[data-day],[data-cal],[data-xedit],[data-wedit],[data-basis],[data-wk]');if(!g)return;
   const D=g.dataset;
-  if(D.tab){tab=D.tab;render();fadeApp();window.scrollTo(0,0);return}
+  if(D.tab){if(D.tab==tab){window.scrollTo(0,0);return}tab=D.tab;renderNav();const a=$('#app');a.classList.add('out');setTimeout(()=>{render();a.classList.remove('out');fadeApp();window.scrollTo(0,0)},110);return}
   if(D.cal){cal=new Date(cal.getFullYear(),cal.getMonth()+ +D.cal,1);render();fadeApp();return}
   if(D.day){const X=S.entries.filter(v=>v.date==D.day);status='';if(X.length>1){draft=null;openSheet();dayList(D.day)}else if(X.length){draft=JSON.parse(JSON.stringify(X[0]));openSheet();view()}else{draft=newDraft({date:D.day});openSheet();paint(1)}return}
   if(D.edit){draft=JSON.parse(JSON.stringify(S.entries.find(v=>v.id==D.edit)));status='';openSheet();view();return}
