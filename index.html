@@ -8,6 +8,8 @@
 <meta name="apple-mobile-web-app-title" content="Futures Ledger">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#1f1e1d">
 <style>
 :root{--bg:#f5f4ee;--card:#fff;--line:#e3e1d8;--tx:#1f1e1d;--mut:#76736b;--acc:#c6613f;--blu:#5a7ea6;--up:#2f7d4f;--dn:#c0432f;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1f1e1d;--card:#2b2a28;--line:#3b3a37;--tx:#faf9f5;--mut:#9c9a92;--acc:#d97757;--up:#7fc08f;--dn:#e8806c}}
@@ -58,6 +60,7 @@ label{display:block;color:var(--mut);font-size:12px;margin:10px 0 4px}
 .eqline{stroke-dasharray:1;animation:dr 1s ease-out}.eqarea{animation:fo .9s ease-out}
 @keyframes grow{from{transform:scaleY(0)}to{transform:scaleY(1)}}
 #toast{position:fixed;left:16px;right:16px;bottom:calc(76px + env(safe-area-inset-bottom,0px));max-width:528px;margin:0 auto;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;font-size:14px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:9}#toast.on{opacity:1}
+#auth{position:fixed;inset:0;background:var(--bg);z-index:20;display:none;align-items:center;justify-content:center;padding:24px}#auth.on{display:flex}.aw{width:100%;max-width:380px}
 .fade{animation:fi .22s ease-out}
 .sheet.open{animation:fo .2s ease-out}
 .sheet.open .pane{animation:su .28s cubic-bezier(.2,.8,.2,1)}
@@ -88,12 +91,17 @@ label{display:block;color:var(--mut);font-size:12px;margin:10px 0 4px}
 <input type="file" id="bk" accept="application/json,.json" hidden>
 <input type="file" id="csvin" accept=".csv,text/csv" multiple hidden>
 <div id="toast"></div>
+<div id="auth"><div class="aw"><h1>Futures Ledger</h1><div class="sub">Sign in to sync your data on every device</div>
+<label>Email</label><input id="a-em" type="email" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false">
+<label>Password</label><input id="a-pw" type="password" autocomplete="current-password">
+<div class="msg" id="a-msg"></div><button class="btn blue" data-act="login">Sign in</button></div></div>
 <script>
 const $=s=>document.querySelector(s);
 const TAGS=['Followed plan','Overtraded','Revenge trade','FOMO','Early exit'],CATS=['Platform','Data feed','Prop firm fee','Education','Other'];
 let S={entries:[],expenses:[],recon:{},rate:1.22,withdrawals:[],taxPct:25,fx:null,deductFees:true},wd=null,tab='home',draft=null,xd=null,cal=new Date(),status='',rmon=null;
 try{Object.assign(S,JSON.parse(localStorage.getItem('futuresLedger')||'{}'))}catch(e){}
-const save=()=>{try{localStorage.setItem('futuresLedger',JSON.stringify(S))}catch(e){}};
+const persist=()=>{try{localStorage.setItem('futuresLedger',JSON.stringify(S))}catch(e){}};
+const save=()=>{persist();if(typeof sess!=='undefined'&&sess)schedSync()};
 const n=v=>{v=parseFloat(String(v).replace(/[^0-9.\-]/g,''));return isNaN(v)?0:v};
 const money=(v,sign)=>{const a=Math.abs(v).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});return (v<0?'−':sign&&v>0?'+':'')+'$'+a};
 const cls=v=>v<0?'dn':v>0?'up':'';
@@ -141,7 +149,7 @@ function render(){
   renderNav();
   let h='';
   if(tab=='home'){const tn=sum(E.filter(e=>e.date==t),'net');
-    h=`<h1>Futures Ledger</h1><div class="sub">${new Date().toLocaleDateString(undefined,{weekday:'long',month:'long',day:'numeric'})}</div>
+    h=`<h1>Futures Ledger</h1><div class="sub">${new Date().toLocaleDateString(undefined,{weekday:'long',month:'long',day:'numeric'})} · <span class="syncs">${esc(syncLabel())}</span></div>
     <div class="card"><div class="lbl">Today, net</div><div class="big ${cls(tn)}">${odo('today',money(tn,1))}</div></div>
     <div class="grid"><div class="card"><div class="lbl">This month</div><div class="mid ${cls(net(ym))}">${odo('month',money(net(ym),1))}</div></div>
     <div class="card"><div class="lbl">This year</div><div class="mid ${cls(net(y))}">${odo('year',money(net(y),1))}</div></div></div>
@@ -226,7 +234,7 @@ function taxHTML(E,y){
     ${tw('Payouts received',pu,pc,'up')}${tw('Trading fees',-f,-f*fx)}${tw('Other expenses',-ex,-ex*fx)}${tw('Net taxable income',nu,nu*fx,cls(nu),1)}${tw('Tax to set aside ('+S.taxPct+'%)',tx,tx*fx,'org')}</div>`}).join('');
   const X=[...S.expenses].sort((a,b)=>b.date.localeCompare(a.date));
   h+=`<div class="lbl" style="margin:18px 0 6px">Expenses</div><div class="card">${X.length?X.map(x=>`<div class="item row" data-xedit="${x.id}"><div><b>${esc(x.cat)}</b><div class="sub" style="margin:0">${fd(x.date,{month:'short',day:'numeric',year:'numeric'})}${x.note?' · '+esc(x.note):''}</div></div><b>${money(n(x.amount))}</b></div>`).join(''):'<div class="msg">Platform, data and prop firm fees, education and similar costs. Ask your accountant what is deductible.</div>'}</div><div class="stack"><button class="btn alt" data-act="exp">Add expense</button></div>`;
-  h+=`<div class="lbl" style="margin:18px 0 6px">Backup and export</div><div class="stack"><button class="btn alt" data-act="backup">Export full backup (JSON)</button><button class="btn alt" data-act="restore">Restore from backup</button><button class="btn alt" data-act="csv">Export trades CSV</button><button class="btn alt" data-act="xcsv">Export expenses CSV</button><button class="btn alt" data-act="wcsv">Export payouts CSV</button><button class="btn alt" data-act="csvimp">Import from CSV</button><button class="btn alt" data-act="key">Set Anthropic API key</button></div><div class="msg">Your data lives only in this browser. Export a backup regularly, and check totals against your broker's official statements. To move data between devices, export the CSVs on one and tap Import from CSV on the other. Imports add to what is already there and skip duplicates. Restore from backup replaces everything instead.</div>`;
+  h+=`${acct()}<div class="lbl" style="margin:18px 0 6px">Backup and export</div><div class="stack"><button class="btn alt" data-act="backup">Export full backup (JSON)</button><button class="btn alt" data-act="restore">Restore from backup</button><button class="btn alt" data-act="csv">Export trades CSV</button><button class="btn alt" data-act="xcsv">Export expenses CSV</button><button class="btn alt" data-act="wcsv">Export payouts CSV</button><button class="btn alt" data-act="csvimp">Import from CSV</button><button class="btn alt" data-act="key">Set Anthropic API key</button></div><div class="msg">Your data lives only in this browser. Export a backup regularly, and check totals against your broker's official statements. To move data between devices, export the CSVs on one and tap Import from CSV on the other. Imports add to what is already there and skip duplicates. Restore from backup replaces everything instead.</div>`;
   return h;
 }
 function reconHTML(){return `<div class="lbl" style="margin:18px 0 6px">Reconcile with your broker</div><div class="card"><label style="margin-top:0">Month</label><input type="month" id="rc-m" value="${rmon}"><label>Broker's net P&amp;L for that month</label><input id="rc-v" inputmode="decimal" value="${esc(S.recon[rmon]??'')}"><div class="msg" id="rc-o"></div></div>`}
@@ -352,6 +360,104 @@ async function scan(files){
   }catch(e){status='!'+(e.message||'Could not read the screenshot.')+' You can still enter the day manually.'}
   paint(1);
 }
+/* ---------- cloud sync (Supabase) ---------- */
+const SB={url:'https://vvvhjuasszkutwdlcsfu.supabase.co',key:'sb_publishable_sc7tnxPSMm2NCnLpYnYuOw_vkAabM1h'};
+const K_SESS='futuresLedgerSession',K_SYNC='futuresLedgerSync',K_OWN='futuresLedgerOwner',LISTS={entry:'entries',expense:'expenses',payout:'withdrawals'};
+const lsGet=(k,d)=>{try{const v=JSON.parse(localStorage.getItem(k));return v==null?d:v}catch(e){return d}};
+const lsSet=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}};
+let sess=lsGet(K_SESS,null),sy=lsGet(K_SYNC,{since:null,h:{}}),syncing=false,syncErr='',syncT=null;
+function stab(o){if(Array.isArray(o))return '['+o.map(stab).join(',')+']';if(o&&typeof o=='object')return '{'+Object.keys(o).filter(k=>o[k]!==undefined).sort().map(k=>JSON.stringify(k)+':'+stab(o[k])).join(',')+'}';return JSON.stringify(o)}
+function hsh(s){let h1=0xdeadbeef,h2=0x41c6ce57;for(let i=0,c;i<s.length;i++){c=s.charCodeAt(i);h1=Math.imul(h1^c,2654435761);h2=Math.imul(h2^c,1597334677)}h1=Math.imul(h1^(h1>>>16),2246822507)^Math.imul(h2^(h2>>>13),3266489909);h2=Math.imul(h2^(h2>>>16),2246822507)^Math.imul(h1^(h1>>>13),3266489909);return (4294967296*(2097151&h2)+(h1>>>0)).toString(36)}
+function settingsObj(){const o={rate:S.rate,taxPct:S.taxPct,deductFees:S.deductFees!==false,fx:S.fx??null,recon:S.recon||{}};if(S.syncKey){const k=localStorage.getItem('futuresLedgerKey');if(k)o.apiKey=k}return o}
+function items(){const m={};[['entry','entries'],['expense','expenses'],['payout','withdrawals']].forEach(([kd,L])=>S[L].forEach(e=>{if(!e.id)e.id=uid();m[kd+':'+e.id]=e}));m['settings:main']=settingsObj();return m}
+function pendingCount(){const c=items();let n=0;for(const k in c)if(sy.h[k]!==hsh(stab(c[k])))n++;for(const k in sy.h)if(!(k in c))n++;return n}
+function syncLabel(){if(!sess)return 'Not signed in';if(syncing)return 'Syncing…';if(syncErr)return syncErr;const p=pendingCount();return (p?p+' change'+(p==1?'':'s')+' waiting · ':'')+(sy.last?'Synced '+new Date(sy.last).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'}):'Not synced yet')}
+function updateSyncUI(){document.querySelectorAll('.syncs').forEach(e=>e.textContent=syncLabel())}
+function schedSync(){clearTimeout(syncT);syncT=setTimeout(syncNow,1500);updateSyncUI()}
+function acct(){return `<div class="lbl" style="margin:18px 0 6px">Account and sync</div><div class="card"><div class="row"><span>Signed in as</span><b style="font-weight:500;font-size:14px">${esc(sess?sess.email:'')}</b></div><div class="msg syncs">${esc(syncLabel())}</div><div class="stack" style="margin:8px 0 0"><button class="btn alt" data-act="syncnow">Sync now</button><button class="btn alt" data-act="signout">Sign out</button></div></div>`}
+const showAuth=()=>$('#auth').classList.add('on'),hideAuth=()=>$('#auth').classList.remove('on');
+const isNet=e=>e instanceof TypeError||(e&&e.name=='TypeError');
+const friendly=e=>isNet(e)?"Can't reach the server. Check your internet connection.":/invalid login/i.test(e.message)?'Wrong email or password.':e.message;
+function setSess(j){sess={access_token:j.access_token,refresh_token:j.refresh_token,expires_at:j.expires_at||Math.floor(Date.now()/1000)+(j.expires_in||3600),uid:(j.user&&j.user.id)||(sess&&sess.uid),email:(j.user&&j.user.email)||(sess&&sess.email)};lsSet(K_SESS,sess)}
+async function ensureToken(){
+  if(!sess)throw new Error('Signed out');if(sess.expires_at-Date.now()/1000>60)return;
+  const r=await fetch(SB.url+'/auth/v1/token?grant_type=refresh_token',{method:'POST',headers:{apikey:SB.key,'Content-Type':'application/json'},body:JSON.stringify({refresh_token:sess.refresh_token})});
+  const j=await r.json();if(!r.ok){if(r.status==400||r.status==401){sess=null;lsSet(K_SESS,null);showAuth()}throw new Error('Please sign in again.')}
+  setSess(j);
+}
+async function authFetch(path,opt={}){await ensureToken();return fetch(SB.url+path,{...opt,headers:{apikey:SB.key,Authorization:'Bearer '+sess.access_token,'Content-Type':'application/json',...(opt.headers||{})}})}
+function resetLocal(){S={entries:[],expenses:[],recon:{},rate:1.22,withdrawals:[],taxPct:25,fx:null,deductFees:true};sy={since:null,h:{}};persist();lsSet(K_SYNC,sy);try{localStorage.removeItem('futuresLedgerKey')}catch(e){}}
+async function doLogin(){
+  const em=$('#a-em').value.trim(),pw=$('#a-pw').value,m=$('#a-msg');
+  if(!em||!pw){m.className='msg err';m.textContent='Enter your email and password.';return}
+  m.className='msg';m.textContent='Signing in…';
+  try{
+    const r=await fetch(SB.url+'/auth/v1/token?grant_type=password',{method:'POST',headers:{apikey:SB.key,'Content-Type':'application/json'},body:JSON.stringify({email:em,password:pw})});
+    const j=await r.json();if(!r.ok)throw new Error(j.error_description||j.msg||'Could not sign in');
+    const own=lsGet(K_OWN,null);
+    if(own&&own!==j.user.id){if(!confirm("This device still holds data from a different account. Replace it with this account's data?")){m.textContent='';return}resetLocal()}
+    setSess(j);lsSet(K_OWN,j.user.id);$('#a-pw').value='';m.textContent='';hideAuth();render();syncNow();
+  }catch(e){m.className='msg err';m.textContent=friendly(e)}
+}
+function applyRec(w){
+  const k=w.kind+':'+w.id;
+  if(w.kind=='settings'){if(w.deleted)return false;const d=w.data||{},before=stab(settingsObj());
+    if(d.rate!=null)S.rate=d.rate;if(d.taxPct!=null)S.taxPct=d.taxPct;if(d.deductFees!=null)S.deductFees=d.deductFees;if('fx' in d)S.fx=d.fx;if(d.recon)S.recon=d.recon;
+    if(d.apiKey){S.syncKey=true;if(!localStorage.getItem('futuresLedgerKey'))localStorage.setItem('futuresLedgerKey',d.apiKey)}
+    const after=stab(settingsObj());sy.h[k]=hsh(after);return before!==after}
+  const L=LISTS[w.kind];if(!L)return false;
+  if(w.deleted){const n0=S[L].length;S[L]=S[L].filter(x=>String(x.id)!==String(w.id));delete sy.h[k];return S[L].length!==n0}
+  const d={...(w.data||{}),id:w.id},i=S[L].findIndex(x=>String(x.id)===String(w.id)),was=i>=0?stab(S[L][i]):null;
+  if(i>=0)S[L][i]=d;else S[L].push(d);sy.h[k]=hsh(stab(d));return was!==stab(d);
+}
+async function pull(){
+  let off=0,last=sy.since,changed=false;
+  for(let g=0;g<100;g++){
+    const r=await authFetch('/rest/v1/records?select=kind,id,data,deleted,updated_at&order=updated_at.asc,kind.asc,id.asc&limit=1000&offset='+off+(sy.since?'&updated_at=gt.'+encodeURIComponent(sy.since):''));
+    if(!r.ok){const j=await r.json().catch(()=>({}));throw new Error(j.message||'Download failed ('+r.status+')')}
+    const rows=await r.json();
+    rows.forEach(w=>{if(applyRec(w))changed=true;if(!last||w.updated_at>last)last=w.updated_at});
+    if(rows.length<1000)break;off+=1000;
+  }
+  if(last)sy.since=new Date(Date.parse(String(last).replace(/(\.\d{3})\d*/,'$1'))-5000).toISOString();
+  lsSet(K_SYNC,sy);if(changed)persist();return changed;
+}
+async function push(){
+  const cur=items(),rows=[],keys=[],sp=k=>[k.slice(0,k.indexOf(':')),k.slice(k.indexOf(':')+1)];
+  for(const k in cur){const hs=hsh(stab(cur[k]));if(sy.h[k]!==hs){const[kind,id]=sp(k);rows.push({user_id:sess.uid,kind,id,data:cur[k],deleted:false});keys.push([k,hs])}}
+  for(const k in sy.h){if(!(k in cur)){const[kind,id]=sp(k);rows.push({user_id:sess.uid,kind,id,data:{},deleted:true});keys.push([k,null])}}
+  for(let i=0;i<rows.length;i+=200){
+    const r=await authFetch('/rest/v1/records?on_conflict=user_id,kind,id',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify(rows.slice(i,i+200))});
+    if(!r.ok){const j=await r.json().catch(()=>({}));throw new Error(j.message||'Upload failed ('+r.status+')')}
+    keys.slice(i,i+200).forEach(([k,hs])=>{if(hs===null)delete sy.h[k];else sy.h[k]=hs});lsSet(K_SYNC,sy);
+  }
+  return rows.length;
+}
+async function syncNow(){
+  if(!sess||syncing)return;syncing=true;syncErr='';updateSyncUI();
+  try{
+    const first=!sy.since;let ch=false;
+    if(first&&await pull())ch=true;
+    await push();
+    if(await pull())ch=true;
+    sy.last=Date.now();lsSet(K_SYNC,sy);
+    if(ch){const y=window.scrollY;render();window.scrollTo(0,y)}
+  }catch(e){syncErr=isNet(e)?'Offline. Changes will sync when you are back online.':'Sync problem: '+e.message}
+  syncing=false;updateSyncUI();
+}
+async function signOut(){
+  if(sess){await syncNow();if(pendingCount()&&!confirm('Some changes have not synced yet. Sign out anyway and lose them on this device?'))return;
+    try{await fetch(SB.url+'/auth/v1/logout',{method:'POST',headers:{apikey:SB.key,Authorization:'Bearer '+sess.access_token}})}catch(e){}}
+  resetLocal();[K_SESS,K_OWN,'futuresLedgerKey'].forEach(k=>{try{localStorage.removeItem(k)}catch(e){}});sess=null;syncErr='';showAuth();render();
+}
+function initSync(){
+  if(!sess)showAuth();else syncNow();
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden&&sess)syncNow()});
+  window.addEventListener('online',()=>{if(sess)syncNow()});
+  setInterval(()=>{if(!document.hidden&&sess)syncNow()},60000);
+  $('#a-pw').addEventListener('keydown',e=>{if(e.key=='Enter')doLogin()});
+  if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
+}
 function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>t.classList.remove('on'),5000)}
 function parseCSV(t){t=t.replace(/^\uFEFF/,'');const R=[];let r=[],c='',q=false;for(let i=0;i<t.length;i++){const ch=t[i];if(q){if(ch=='"'){if(t[i+1]=='"'){c+='"';i++}else q=false}else c+=ch}else if(ch=='"')q=true;else if(ch==','){r.push(c);c=''}else if(ch=='\n'||ch=='\r'){if(ch=='\r'&&t[i+1]=='\n')i++;r.push(c);c='';R.push(r);r=[]}else c+=ch}if(c!==''||r.length){r.push(c);R.push(r)}return R.filter(x=>x.some(v=>v!==''))}
 function normDate(v){v=String(v||'').trim();if(/^\d{4}-\d{2}-\d{2}$/.test(v))return v;const d=new Date(v);return isNaN(d)?null:ymd(d)}
@@ -420,7 +526,8 @@ document.addEventListener('click',e=>{
   else if(a=='csv')csv();else if(a=='xcsv')xcsv();
   else if(a=='backup')dlf('futures-ledger-backup-'+today()+'.json',JSON.stringify(S),'application/json');
   else if(a=='restore')$('#bk').click();
-  else if(a=='key'){const k=(prompt('Paste your Anthropic API key (stored only on this device):')||'').trim();if(k)localStorage.setItem('futuresLedgerKey',k)}
+  else if(a=='key'){const k=(prompt('Paste your Anthropic API key (stored only on this device):')||'').trim();if(k){localStorage.setItem('futuresLedgerKey',k);if(sess){S.syncKey=confirm('Also save this key in your private account so your other devices have it?');save()}}}
+  else if(a=='login')doLogin();else if(a=='syncnow')syncNow();else if(a=='signout')signOut()
   else if(a=='delete'){if(!draft._c){draft._c=1;g.textContent='Tap again to confirm delete';g.style.color='var(--dn)'}else{S.entries=S.entries.filter(v=>v.id!=draft.id);save();closeSheet();render()}}
   else if(a=='xdelete'){if(!xd._c){xd._c=1;g.textContent='Tap again to confirm delete';g.style.color='var(--dn)'}else{S.expenses=S.expenses.filter(v=>v.id!=xd.id);save();closeSheet();render()}}
   else if(a=='xsave'){xd.date=$('#x-date').value||today();xd.amount=Math.abs(n($('#x-amt').value));xd.note=$('#x-note').value;delete xd._c;
@@ -450,6 +557,7 @@ $('#csvin').addEventListener('change',async e=>{const fs=[...e.target.files];e.t
 $('#bk').addEventListener('change',e=>{const f=e.target.files[0];e.target.value='';if(!f)return;const r=new FileReader();r.onload=()=>{try{const o=JSON.parse(r.result);if(!Array.isArray(o.entries))throw 0;if(confirm('Replace everything in the app with this backup ('+o.entries.length+' days)?')){S=Object.assign({entries:[],expenses:[],recon:{},rate:1.22,withdrawals:[],taxPct:25,fx:null,deductFees:true},o);save();render()}}catch(x){alert('That file is not a valid backup.')}};r.readAsText(f)});
 $('#sheet').addEventListener('click',e=>{if(e.target.id=='sheet')closeSheet()});
 render();
+initSync();
 </script>
 </body>
 </html>
