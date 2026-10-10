@@ -158,7 +158,7 @@ function render(){
   renderNav();
   let h='';
   if(tab=='home'){const tn=sum(E.filter(e=>e.date==t),'net');
-    h=`<h1>Futures Ledger</h1><div class="sub">${new Date().toLocaleDateString(undefined,{weekday:'long',month:'long',day:'numeric'})} · <span class="syncs">${esc(syncLabel())}</span></div>
+    h=`<div class="row" style="align-items:flex-start"><h1>Futures Ledger</h1>${sess?'<button class="editbtn" data-act="signout" style="margin-top:10px;flex:none;font-size:13px;padding:7px 11px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg> Sign out</button>':''}</div><div class="sub">${new Date().toLocaleDateString(undefined,{weekday:'long',month:'long',day:'numeric'})} · <span class="syncs">${esc(syncLabel())}</span></div>
     <div class="card"><div class="lbl">Today, net</div><div class="big ${cls(tn)}">${odo('today',money(tn,1))}</div></div>
     <div class="grid"><div class="card"><div class="lbl">This month</div><div class="mid ${cls(net(ym))}">${odo('month',money(net(ym),1))}</div></div>
     <div class="card"><div class="lbl">This year</div><div class="mid ${cls(net(y))}">${odo('year',money(net(y),1))}</div></div></div>
@@ -482,6 +482,7 @@ async function syncNow(){
   syncing=false;updateSyncUI();
 }
 async function signOut(){
+  if(!confirm('Sign out of this device? Your data stays safe in your account and comes back when you sign in again.'))return;
   if(sess){await syncNow();if(pendingCount()&&!confirm('Some changes have not synced yet. Sign out anyway and lose them on this device?'))return;
     try{await fetch(SB.url+'/auth/v1/logout',{method:'POST',headers:{apikey:SB.key,Authorization:'Bearer '+sess.access_token}})}catch(e){}}
   resetLocal();[K_SESS,K_OWN,'futuresLedgerKey'].forEach(k=>{try{localStorage.removeItem(k)}catch(e){}});sess=null;syncErr='';showAuth();render();
