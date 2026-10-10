@@ -39,7 +39,7 @@ input,textarea{width:100%;background:var(--bg);color:var(--tx);border:1px solid 
 label{display:block;color:var(--mut);font-size:12px;margin:10px 0 4px}
 .sheet{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:flex-end;justify-content:center;z-index:5}
 .sheet.open{display:flex}
-.pane{background:var(--bg);width:100%;max-width:560px;max-height:92%;overflow:auto;border-radius:22px 22px 0 0;padding:18px 16px calc(24px + env(safe-area-inset-bottom,0px))}
+.pane{overscroll-behavior:contain;background:var(--bg);width:100%;max-width:560px;max-height:92%;overflow:auto;border-radius:22px 22px 0 0;padding:18px 16px calc(24px + env(safe-area-inset-bottom,0px))}
 .tr{display:grid;grid-template-columns:1fr 64px auto 28px;gap:6px;margin-bottom:8px;align-items:center}
 .seg{display:flex;border:1px solid var(--line);border-radius:12px;overflow:hidden}
 .seg button{background:var(--bg);color:var(--mut);border:0;padding:10px 11px;font:inherit;font-size:14px}
@@ -68,6 +68,7 @@ label{display:block;color:var(--mut);font-size:12px;margin:10px 0 4px}
 @keyframes lg{to{opacity:1;transform:none}}
 body.boot #app,body.boot .nav{opacity:0}
 body.bootin #app,body.bootin .nav{animation:fi .55s ease-out}
+.tile{background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
 .fade{animation:fi .22s ease-out}
 .sheet.open{animation:fo .2s ease-out}
 .sheet.open .pane{animation:su .28s cubic-bezier(.2,.8,.2,1)}
@@ -201,24 +202,30 @@ const ymd=x=>x.getFullYear()+'-'+pad(x.getMonth()+1)+'-'+pad(x.getDate());
 function monOf(d){const x=new Date(d);x.setHours(12,0,0,0);x.setDate(x.getDate()-((x.getDay()+6)%7));return x}
 function barHTML(E){
   if(!wkStart)wkStart=monOf(new Date());
-  const days=[...Array(7)].map((_,i)=>{const d=new Date(wkStart);d.setDate(d.getDate()+i);return d});
-  const vals=days.map(d=>{const L=E.filter(e=>e.date==ymd(d));return L.length?sum(L,'net'):null});
-  const real=vals.filter(v=>v!==null),tot=real.reduce((a,b)=>a+b,0);
+  const day=i=>{const d=new Date(wkStart);d.setDate(d.getDate()+i);return d},net=i=>{const L=E.filter(e=>e.date==ymd(day(i)));return L.length?sum(L,'net'):null};
+  const wk=[0,1,2,3,4].map(i=>({lab:day(i).toLocaleDateString(undefined,{weekday:'short'}),sub:day(i).getDate(),v:net(i)}));
+  const we=[5,6].map(net).filter(v=>v!==null);if(we.length)wk.push({lab:'Wknd',sub:'',v:we.reduce((a,b)=>a+b,0)});
+  const real=wk.map(c=>c.v).filter(v=>v!==null),tot=real.reduce((a,b)=>a+b,0);
   const W=340,H=220,L0=46,R=8,T=20,B=36,pw=W-L0-R,ph=H-T-B,mn=Math.min(0,...real),mx=Math.max(0,...real);
   const raw=((mx-mn)||100)/4,mag=Math.pow(10,Math.floor(Math.log10(raw))),f=raw/mag,step=(f<=1?1:f<=2?2:f<=5?5:10)*mag;
-  const lo=Math.floor(mn/step)*step,hi=Math.max(Math.ceil(mx/step)*step,lo+step),Y=v=>T+ph-((v-lo)/(hi-lo))*ph,zy=Y(0),bw=pw/7;
+  const lo=Math.floor(mn/step)*step,hi=Math.max(Math.ceil(mx/step)*step,lo+step),Y=v=>T+ph-((v-lo)/(hi-lo))*ph,zy=Y(0),bw=pw/wk.length;
   const tick=v=>{const a=Math.abs(v);return (v<0?'−':'')+'$'+(a>=1000?(a/1000).toFixed(a%1000?1:0)+'k':a)},fmt=v=>(v>0?'+':v<0?'−':'')+'$'+Math.abs(Math.round(v));
   let g='';const k=Math.round((hi-lo)/step);
   for(let i=0;i<=k;i++){const v=lo+i*step,y=Y(v).toFixed(1);g+=`<line x1="${L0}" x2="${W-R}" y1="${y}" y2="${y}" stroke="var(--line)" ${Math.abs(v)<1e-9?'':'stroke-dasharray="2 4"'}/><text x="${L0-7}" y="${(Y(v)+3.5).toFixed(1)}" text-anchor="end" font-size="10" fill="var(--mut)">${tick(v)}</text>`}
-  days.forEach((d,i)=>{const v=vals[i],x=L0+i*bw+bw*.18,w=bw*.64,cx=x+w/2;
+  wk.forEach((c,i)=>{const v=c.v,w=Math.min(bw*.64,46),x=L0+i*bw+(bw-w)/2,cx=x+w/2;
     if(v){const up=v>0,h=Math.max(2,Math.abs(Y(v)-zy)),y=up?zy-h:zy;
-      g+=`<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${w.toFixed(1)}" height="${h.toFixed(1)}" rx="4" style="fill:var(${up?'--up':'--dn'});transform-box:fill-box;transform-origin:50% ${up?'100%':'0%'};animation:grow .5s ease-out both;animation-delay:${i*.04}s"/><text x="${cx.toFixed(1)}" y="${(up?y-4:y+h+11).toFixed(1)}" text-anchor="middle" font-size="9.5" style="fill:var(${up?'--up':'--dn'})">${fmt(v)}</text>`}
+      g+=`<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${w.toFixed(1)}" height="${h.toFixed(1)}" rx="5" style="fill:var(${up?'--up':'--dn'});transform-box:fill-box;transform-origin:50% ${up?'100%':'0%'};animation:grow .5s ease-out both;animation-delay:${i*.05}s"/><text x="${cx.toFixed(1)}" y="${(up?y-4:y+h+11).toFixed(1)}" text-anchor="middle" font-size="10" style="fill:var(${up?'--up':'--dn'})">${fmt(v)}</text>`}
     else if(v===0)g+=`<rect x="${x.toFixed(1)}" y="${(zy-1).toFixed(1)}" width="${w.toFixed(1)}" height="2" rx="1" fill="var(--mut)"/>`;
-    g+=`<text x="${cx.toFixed(1)}" y="${H-19}" text-anchor="middle" font-size="10" fill="var(--mut)">${d.toLocaleDateString(undefined,{weekday:'short'})}</text><text x="${cx.toFixed(1)}" y="${H-6}" text-anchor="middle" font-size="9" fill="var(--mut)" opacity=".7">${d.getDate()}</text>`});
-  const end=new Date(wkStart);end.setDate(end.getDate()+6);const cur=ymd(wkStart)==ymd(monOf(new Date())),o={month:'short',day:'numeric'};
+    g+=`<text x="${cx.toFixed(1)}" y="${H-19}" text-anchor="middle" font-size="10.5" fill="var(--mut)">${c.lab}</text><text x="${cx.toFixed(1)}" y="${H-6}" text-anchor="middle" font-size="9" fill="var(--mut)" opacity=".7">${c.sub}</text>`});
+  const o={month:'short',day:'numeric'},end=day(we.length?6:4),cur=ymd(wkStart)==ymd(monOf(new Date()));
+  const inWk=(e,st)=>{const a=ymd(st),b=ymd(new Date(st.getFullYear(),st.getMonth(),st.getDate()+6));return e.date>=a&&e.date<=b};
+  const prevSt=new Date(wkStart.getFullYear(),wkStart.getMonth(),wkStart.getDate()-7),thisW=E.filter(e=>inWk(e,wkStart)),prevW=E.filter(e=>inWk(e,prevSt));
+  const bestV=real.length?Math.max(...real):null,worstV=real.length?Math.min(...real):null,nm=v=>wk.find(c=>c.v===v).lab;
+  const tile=(l,v,c)=>`<div class="tile"><div class="lbl">${l}</div><div class="${c||''}" style="font-size:17px;font-weight:600;margin-top:3px">${v}</div></div>`;
   return `<div class="card"><div class="row"><button class="x" data-wk="-1">‹</button><b>${wkStart.toLocaleDateString(undefined,o)} – ${end.toLocaleDateString(undefined,o)}</b><button class="x" data-wk="1" ${cur?'disabled style="opacity:.25"':''}>›</button></div>
   <div class="row" style="margin:2px 0 4px"><span class="lbl">Week net · ${real.length} day${real.length==1?'':'s'} logged</span><b class="${cls(tot)}">${odo('wnet',money(tot,1))}</b></div>
-  <svg viewBox="0 0 ${W} ${H}" width="100%">${g}</svg></div>`;
+  <svg viewBox="0 0 ${W} ${H}" width="100%">${g}</svg>
+  <div class="grid" style="margin-top:12px;gap:8px">${tile('Best day',bestV>0?nm(bestV)+' '+fmt(bestV):'—',bestV>0?'up':'')}${tile('Worst day',worstV<0?nm(worstV)+' '+fmt(worstV):'—',worstV<0?'dn':'')}${tile('Fees this week',money(sum(thisW,'fees')))}${tile('vs last week',prevW.length?money(tot-sum(prevW,'net'),1):'—',prevW.length?cls(tot-sum(prevW,'net')):'')}</div></div>`;
 }
 function statsHTML(E){
   if(!E.length)return '<div class="empty">Log a few days to see your stats.</div>';
@@ -255,7 +262,7 @@ function rcalc(){
 }
 
 let closeT=null;
-function openSheet(){clearTimeout(closeT);const s=$('#sheet');s.classList.remove('closing');s.classList.add('open')}
+function openSheet(){clearTimeout(closeT);const s=$('#sheet'),p=$('#pane');s.classList.remove('closing');p.style.transition='';p.style.transform='';s.style.transition='';s.style.background='';s.classList.add('open')}
 function closeSheet(){const s=$('#sheet');draft=null;xd=null;wd=null;status='';if(!s.classList.contains('open')||s.classList.contains('closing'))return;s.classList.add('closing');closeT=setTimeout(()=>{s.classList.remove('open','closing');rollAll()},220)}
 function newDraft(o){return Object.assign({id:null,date:today(),trades:[],micros:'',microsPer:'',ntr:1,basis:'gross',net:'',notes:'',tags:[]},o)}
 function stag(){const p=$('#pane');p.classList.remove('stag');void p.offsetWidth;p.classList.add('stag');setTimeout(()=>p.classList.remove('stag'),700)}
@@ -327,6 +334,27 @@ async function doFx(){
   if(r&&r.rate){$('#w-fx').value=r.rate.toFixed(4);m.textContent='Rate '+r.rate.toFixed(4)+' ('+r.src+'). Edit it if you use a different rate.'}
   else{m.className='msg err';m.textContent='Could not look up a rate. Type one in yourself.'}
   wcalc();
+}
+function closeSwipe(){
+  const s=$('#sheet'),p=$('#pane');draft=null;xd=null;wd=null;status='';
+  p.style.transition='transform .24s ease-in';p.style.transform='translateY(110%)';s.style.transition='background .24s ease';s.style.background='rgba(0,0,0,0)';
+  closeT=setTimeout(()=>{s.classList.remove('open','closing');p.style.transition='';p.style.transform='';s.style.transition='';s.style.background='';rollAll()},250);
+}
+function initSwipe(){
+  const p=$('#pane'),s=$('#sheet');let y0=null,dy=0,t0=0,drag=false;
+  p.addEventListener('touchstart',e=>{if(e.touches.length!=1||s.classList.contains('closing')){y0=null;return}y0=e.touches[0].clientY;dy=0;t0=Date.now();drag=false},{passive:true});
+  p.addEventListener('touchmove',e=>{
+    if(y0===null)return;const d=e.touches[0].clientY-y0;
+    if(!drag){if(d>8&&p.scrollTop<=0){drag=true;p.style.transition='none';s.style.transition='none'}else return}
+    e.preventDefault();dy=Math.max(0,d);p.style.transform='translateY('+dy+'px)';s.style.background='rgba(0,0,0,'+(.55*(1-Math.min(1,dy/420))).toFixed(3)+')';
+  },{passive:false});
+  const end=()=>{
+    if(y0===null||!drag){y0=null;return}y0=null;drag=false;
+    if(dy>110||(dy>60&&dy/(Date.now()-t0||1)>.6))closeSwipe();
+    else{p.style.transition='transform .22s ease';s.style.transition='background .22s ease';p.style.transform='translateY(0)';s.style.background='';setTimeout(()=>{p.style.transition='';p.style.transform='';s.style.transition=''},240)}
+  };
+  p.addEventListener('touchend',end);p.addEventListener('touchcancel',end);
+  document.addEventListener('keydown',e=>{if(e.key=='Escape'&&s.classList.contains('open'))closeSheet()});
 }
 function dayList(date){
   const X=S.entries.filter(e=>e.date==date),t=sum(X,'net'),f=sum(X,'fees'),m=sum(X,'micros');
@@ -574,6 +602,7 @@ $('#bk').addEventListener('change',e=>{const f=e.target.files[0];e.target.value=
 $('#sheet').addEventListener('click',e=>{if(e.target.id=='sheet')closeSheet()});
 render();
 initSync();
+initSwipe();
 </script>
 </body>
 </html>
