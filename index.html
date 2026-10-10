@@ -60,7 +60,14 @@ label{display:block;color:var(--mut);font-size:12px;margin:10px 0 4px}
 .eqline{stroke-dasharray:1;animation:dr 1s ease-out}.eqarea{animation:fo .9s ease-out}
 @keyframes grow{from{transform:scaleY(0)}to{transform:scaleY(1)}}
 #toast{position:fixed;left:16px;right:16px;bottom:calc(76px + env(safe-area-inset-bottom,0px));max-width:528px;margin:0 auto;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;font-size:14px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:9}#toast.on{opacity:1}
-#auth{position:fixed;inset:0;background:var(--bg);z-index:20;display:none;align-items:center;justify-content:center;padding:24px}#auth.on{display:flex}.aw{width:100%;max-width:380px}
+#auth{position:fixed;inset:0;background:var(--bg);z-index:20;display:flex;align-items:center;justify-content:center;padding:24px;visibility:hidden;opacity:0;transition:opacity .5s ease,visibility 0s .5s}
+#auth.on{visibility:visible;opacity:1;transition:opacity .5s ease,visibility 0s 0s}.aw{width:100%;max-width:380px}
+#splash{position:fixed;inset:0;background:var(--bg);z-index:40;display:flex;align-items:center;justify-content:center;transition:opacity .55s ease}
+#splash.out{opacity:0;pointer-events:none}
+#splash svg{width:112px;height:112px;opacity:0;transform:scale(.85);animation:lg .75s cubic-bezier(.2,.8,.2,1) .1s forwards}
+@keyframes lg{to{opacity:1;transform:none}}
+body.boot #app,body.boot .nav{opacity:0}
+body.bootin #app,body.bootin .nav{animation:fi .55s ease-out}
 .fade{animation:fi .22s ease-out}
 .sheet.open{animation:fo .2s ease-out}
 .sheet.open .pane{animation:su .28s cubic-bezier(.2,.8,.2,1)}
@@ -83,7 +90,8 @@ label{display:block;color:var(--mut);font-size:12px;margin:10px 0 4px}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
-<body>
+<body class="boot">
+<div id="splash"><svg viewBox="0 0 180 180" aria-label="Futures Ledger"><circle cx="90" cy="90" r="70" fill="#5a7ea6"/><polyline points="52,116 80,88 98,102 124,70" fill="none" stroke="#fff" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/><polygon points="137.9,52.9 134.4,81 111.1,62.1" fill="#fff"/></svg></div>
 <div id="app"></div>
 <div class="nav" id="nav"></div>
 <div class="sheet" id="sheet"><div class="pane" id="pane"></div></div>
@@ -102,7 +110,7 @@ let S={entries:[],expenses:[],recon:{},rate:1.22,withdrawals:[],taxPct:25,fx:nul
 try{Object.assign(S,JSON.parse(localStorage.getItem('futuresLedger')||'{}'))}catch(e){}
 const persist=()=>{try{localStorage.setItem('futuresLedger',JSON.stringify(S))}catch(e){}};
 const save=()=>{persist();if(typeof sess!=='undefined'&&sess)schedSync()};
-const n=v=>{v=parseFloat(String(v).replace(/[^0-9.\-]/g,''));return isNaN(v)?0:v};
+const n=v=>{v=parseFloat(String(v).replace(/[\u2212\u2013\u2014]/g,'-').replace(/[^0-9.\-]/g,''));return isNaN(v)?0:v};
 const money=(v,sign)=>{const a=Math.abs(v).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});return (v<0?'−':sign&&v>0?'+':'')+'$'+a};
 const cls=v=>v<0?'dn':v>0?'up':'';
 const pad=v=>String(v).padStart(2,'0');
@@ -261,7 +269,7 @@ function paint0(){
   ${d.trades.map((t,i)=>{const sh=String(t.side||'').toLowerCase().startsWith('s');return `<div class="tr"><input data-t="${i}" data-k="symbol" placeholder="Symbol (e.g. MNQ)" value="${esc(t.symbol)}"><input data-t="${i}" data-k="qty" inputmode="decimal" placeholder="Micros" value="${esc(t.qty)}" style="text-align:center;padding-left:4px;padding-right:4px"><div class="seg"><button data-side="${i}:Long" class="${sh?'':'on l'}">Long</button><button data-side="${i}:Short" class="${sh?'on s':''}">Short</button></div><button class="x" data-del="${i}">✕</button></div>`}).join('')}
   <button class="btn alt" style="padding:10px;margin-top:4px" data-act="addtrade">+ Add trade</button>
   <label>The amount I'm entering is</label><div class="seg"><button style="flex:1" data-basis="net" class="${d.basis=='gross'?'':'on l'}">Net (after fees)</button><button style="flex:1" data-basis="gross" class="${d.basis=='gross'?'on l':''}">Gross (before fees)</button></div>
-  <label id="l-amt">${d.basis=='gross'?'Gross P&amp;L (before commissions)':'Net P&amp;L (as shown on your platform, after commissions)'}</label><input id="f-net" inputmode="decimal" value="${esc(d.net)}">
+  <div class="row" style="margin-top:10px"><label id="l-amt" style="margin:0">${d.basis=='gross'?'Gross P&amp;L (before commissions)':'Net P&amp;L (as shown on your platform, after commissions)'}</label><button class="chip" style="margin:0;flex:none" data-act="flip">± Flip sign</button></div><input id="f-net" style="margin-top:6px" inputmode="decimal" value="${esc(d.net)}">
   <label>Fee per micro, round trip ($)</label><input id="f-rate" inputmode="decimal" value="${S.rate}">
   <div class="card" style="margin-top:12px"><div class="row"><span>Total micros</span><b id="o-tm"></b></div><div class="row" style="margin-top:6px"><span>Fees &amp; commissions</span><b id="o-fees"></b></div><div class="row" style="margin-top:6px"><span>Gross P&amp;L</span><b id="o-gross"></b></div><div class="row" style="margin-top:6px"><span>Net P&amp;L (after fees)</span><b id="o-net"></b></div></div>
   <label>Tags</label><div>${TAGS.map(t=>`<button class="chip ${d.tags.includes(t)?'on':''}" data-tag="${t}">${t}</button>`).join('')}</div>
@@ -396,7 +404,7 @@ async function doLogin(){
     const j=await r.json();if(!r.ok)throw new Error(j.error_description||j.msg||'Could not sign in');
     const own=lsGet(K_OWN,null);
     if(own&&own!==j.user.id){if(!confirm("This device still holds data from a different account. Replace it with this account's data?")){m.textContent='';return}resetLocal()}
-    setSess(j);lsSet(K_OWN,j.user.id);$('#a-pw').value='';m.textContent='';hideAuth();render();syncNow();
+    setSess(j);lsSet(K_OWN,j.user.id);$('#a-pw').value='';m.textContent='';render();hideAuth();revealApp();syncNow();
   }catch(e){m.className='msg err';m.textContent=friendly(e)}
 }
 function applyRec(w){
@@ -410,7 +418,7 @@ function applyRec(w){
   const d={...(w.data||{}),id:w.id},i=S[L].findIndex(x=>String(x.id)===String(w.id)),was=i>=0?stab(S[L][i]):null;
   if(i>=0)S[L][i]=d;else S[L].push(d);sy.h[k]=hsh(stab(d));return was!==stab(d);
 }
-async function pull(){
+async function pullRemote(){
   let off=0,last=sy.since,changed=false;
   for(let g=0;g<100;g++){
     const r=await authFetch('/rest/v1/records?select=kind,id,data,deleted,updated_at&order=updated_at.asc,kind.asc,id.asc&limit=1000&offset='+off+(sy.since?'&updated_at=gt.'+encodeURIComponent(sy.since):''));
@@ -422,7 +430,7 @@ async function pull(){
   if(last)sy.since=new Date(Date.parse(String(last).replace(/(\.\d{3})\d*/,'$1'))-5000).toISOString();
   lsSet(K_SYNC,sy);if(changed)persist();return changed;
 }
-async function push(){
+async function pushRemote(){
   const cur=items(),rows=[],keys=[],sp=k=>[k.slice(0,k.indexOf(':')),k.slice(k.indexOf(':')+1)];
   for(const k in cur){const hs=hsh(stab(cur[k]));if(sy.h[k]!==hs){const[kind,id]=sp(k);rows.push({user_id:sess.uid,kind,id,data:cur[k],deleted:false});keys.push([k,hs])}}
   for(const k in sy.h){if(!(k in cur)){const[kind,id]=sp(k);rows.push({user_id:sess.uid,kind,id,data:{},deleted:true});keys.push([k,null])}}
@@ -437,9 +445,9 @@ async function syncNow(){
   if(!sess||syncing)return;syncing=true;syncErr='';updateSyncUI();
   try{
     const first=!sy.since;let ch=false;
-    if(first&&await pull())ch=true;
-    await push();
-    if(await pull())ch=true;
+    if(first&&await pullRemote())ch=true;
+    await pushRemote();
+    if(await pullRemote())ch=true;
     sy.last=Date.now();lsSet(K_SYNC,sy);
     if(ch){const y=window.scrollY;render();window.scrollTo(0,y)}
   }catch(e){syncErr=isNet(e)?'Offline. Changes will sync when you are back online.':'Sync problem: '+e.message}
@@ -450,8 +458,15 @@ async function signOut(){
     try{await fetch(SB.url+'/auth/v1/logout',{method:'POST',headers:{apikey:SB.key,Authorization:'Bearer '+sess.access_token}})}catch(e){}}
   resetLocal();[K_SESS,K_OWN,'futuresLedgerKey'].forEach(k=>{try{localStorage.removeItem(k)}catch(e){}});sess=null;syncErr='';showAuth();render();
 }
+function revealApp(){const b=document.body;if(!b||!b.classList)return;b.classList.remove('boot');b.classList.add('bootin');setTimeout(()=>b.classList.remove('bootin'),800)}
+function intro(){
+  const sp=$('#splash'),done=()=>{if(sp.remove)sp.remove()},rm=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if(rm){done();if(!sess)showAuth();else revealApp();return}
+  setTimeout(()=>{sp.classList.add('out');if(!sess)showAuth();else revealApp();setTimeout(done,700)},sess?850:1350);
+  setTimeout(()=>{done();document.body&&document.body.classList&&document.body.classList.remove('boot')},6000);
+}
 function initSync(){
-  if(!sess)showAuth();else syncNow();
+  intro();if(sess)syncNow();
   document.addEventListener('visibilitychange',()=>{if(!document.hidden&&sess)syncNow()});
   window.addEventListener('online',()=>{if(sess)syncNow()});
   setInterval(()=>{if(!document.hidden&&sess)syncNow()},60000);
@@ -509,6 +524,7 @@ document.addEventListener('click',e=>{
   if(a=='scan')$('#file').click();
   else if(a=='manual'){draft=newDraft();status='';openSheet();paint(1)}
   else if(a=='exp'){xd={id:null,date:today(),amount:'',cat:'Platform',note:''};openSheet();paintX();stag()}
+  else if(a=='flip'){const f=$('#f-net'),t=String(f.value).trim();f.value=/^[-\u2212]/.test(t)?t.replace(/^[-\u2212]/,''):'-'+t;calc()}
   else if(a=='editday'){status='';paint(1)}
   else if(a=='addsame'){draft=newDraft({date:D.date});status='';paint(1)}
   else if(a=='wadd'){wd={id:null,date:today(),usd:'',fx:S.fx||'',note:''};openSheet();paintW();stag();doFx()}
