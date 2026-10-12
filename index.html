@@ -658,8 +658,9 @@ const rgbaOf=(h,a)=>{const c=hex2(h);return c?`rgba(${c[0]},${c[1]},${c[2]},${a}
 const onColor=h=>{const c=hex2(h);if(!c)return '';const l=c.map(v=>{v/=255;return v<=.03928?v/12.92:Math.pow((v+.055)/1.055,2.4)});return (.2126*l[0]+.7152*l[1]+.0722*l[2])>.45?'#12202e':'#fff'};
 const noAnim=()=>!!(S.dev&&S.dev.anim===false);
 function envBottom(){try{const p=document.createElement('div');p.style.cssText='position:fixed;left:0;top:0;visibility:hidden;padding-bottom:env(safe-area-inset-bottom,0px);padding-top:env(safe-area-inset-top,0px)';document.body.appendChild(p);const cs=getComputedStyle(p),v={b:parseFloat(cs.paddingBottom)||0,t:parseFloat(cs.paddingTop)||0};p.remove();return v}catch(e){return{b:0,t:0}}}
-const autoNd=()=>Math.max(0,Math.round(envBottom().b-10));
-function diagText(){try{const e=envBottom(),vv=window.visualViewport,nv=document.querySelector('.nav'),r=nv&&nv.getBoundingClientRect();return 'Screen '+screen.width+'x'+screen.height+' | Viewport '+window.innerWidth+'x'+window.innerHeight+(vv?' | Visual '+Math.round(vv.width)+'x'+Math.round(vv.height):'')+' | Insets top '+e.t+' bottom '+e.b+' | '+((navigator.standalone||(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches))?'Home Screen app':'Browser')+(r?' | Bar bottom '+Math.round(r.bottom):'')+' | Lowered '+((S.dev&&S.dev.nd!=null)?S.dev.nd:autoNd())+'px'}catch(e){return ''}}
+const maxNd=()=>Math.max(0,Math.round(8+envBottom().b-2)),autoNd=()=>Math.min(maxNd(),Math.max(0,Math.round(envBottom().b-10))),curNd=()=>Math.min(maxNd(),(S.dev&&S.dev.nd!=null)?S.dev.nd:autoNd());
+function diagText(){try{const e=envBottom(),vv=window.visualViewport,nv=document.querySelector('.nav'),r=nv&&nv.getBoundingClientRect();return 'Screen '+screen.width+'x'+screen.height+' | Viewport '+window.innerWidth+'x'+window.innerHeight+(vv?' | Visual '+Math.round(vv.width)+'x'+Math.round(vv.height):'')+' | Insets top '+e.t+' bottom '+e.b+' | '+((navigator.standalone||(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches))?'Home Screen app':'Browser')+(r?' | Bar bottom '+Math.round(r.bottom):'')+' | Lowered '+curNd()+'px (max '+maxNd()+')'}catch(e){return ''}}
+function syncThemeColor(){try{const m=document.querySelector('meta[name="theme-color"]');if(!m||!document.body)return;const c=getComputedStyle(document.body).backgroundColor.match(/\d+/g);if(c&&c.length>=3)m.setAttribute('content','#'+c.slice(0,3).map(v=>(+v).toString(16).padStart(2,'0')).join(''))}catch(e){}}
 function applyPrefs(){
   const p=S.prefs||{},d=S.dev||{};if(!document.documentElement)return;
   const r=document.documentElement.style,set=(k,v)=>v?r.setProperty(k,v):r.removeProperty(k);
@@ -668,7 +669,7 @@ function applyPrefs(){
   set('--ev',p.ev);set('--evtx',p.ev?onColor(p.ev):'');
   [['10',.10],['14',.14],['28',.28],['30',.30],['42',.42]].forEach(([k,a])=>set('--ev'+k,p.ev?rgbaOf(p.ev,a):''));
   if(d.theme==='dark'||d.theme==='light')document.documentElement.setAttribute('data-theme',d.theme);else document.documentElement.removeAttribute('data-theme');
-  set('--ts',d.ts&&d.ts!=100?String(d.ts/100):'');set('--nd',((d.nd!=null?d.nd:autoNd())||0)+'px');
+  set('--ts',d.ts&&d.ts!=100?String(d.ts/100):'');setTimeout(syncThemeColor,0);set('--nd',curNd()+'px');
   if(document.documentElement.classList)document.documentElement.classList.toggle('noanim',noAnim());
 }
 function avatarHTML(){const p=S.prefs||{},ini=((p.name||(sess&&sess.email)||'?').trim()[0]||'?').toUpperCase();return p.avatar?`<img class="av-img" src="${p.avatar}" alt="">`:`<span>${esc(ini)}</span>`}
@@ -696,7 +697,7 @@ function settingsHTML(){
     <button class="btn alt" style="margin-top:14px;padding:10px" data-act="resetlook">Reset colours and size</button></div>
   <div class="card"><div class="lbl" style="margin-bottom:2px">Preferences</div>
     ${lb('Open the app in')}<div class="seg">${sg('startMode','last',sm,'Last used')}${sg('startMode','pa',sm,'PA')}${sg('startMode','eval',sm,'Eval')}</div>
-    ${lb('Tab bar height · this device')}<div class="row" style="gap:12px"><input id="p-nd" type="range" min="0" max="60" step="1" value="${d.nd!=null?d.nd:autoNd()}" style="padding:0;height:34px;flex:1;min-height:0"><span class="lbl" id="p-ndv" style="min-width:64px;text-align:right">${d.nd!=null?d.nd:autoNd()}px lower</span></div><div class="msg" style="margin:2px 0 0">Drag right to move the Today, Journal, Stats, Payouts and Tax bar lower on this device.</div>
+    ${lb('Tab bar height · this device')}<div class="row" style="gap:12px"><input id="p-nd" type="range" min="0" max="${Math.max(1,maxNd())}" step="1" value="${curNd()}" style="padding:0;height:34px;flex:1;min-height:0"><span class="lbl" id="p-ndv" style="min-width:64px;text-align:right">${curNd()}px lower</span></div><div class="msg" style="margin:2px 0 0">Drag right to move the Today, Journal, Stats, Payouts and Tax bar lower. All the way right puts the buttons at the very bottom of the visible screen, just above anything the phone draws over the page.</div>
     ${lb('Animations · this device')}<div class="seg">${sg('anim','on',an,'On',1)}${sg('anim','off',an,'Off',1)}</div>
     ${lb('PA accounts I trade')}<input id="p-accpa" inputmode="numeric" value="${defAcc('pa')}">${lb('Eval accounts I trade')}<input id="p-acceval" inputmode="numeric" value="${defAcc('eval')}"><div class="msg" style="margin:4px 0 0">New entries start with these counts. Each entry multiplies its profit, fees and micros by its number of accounts.</div>${lb('Fee per micro, round trip ($)')}<input id="p-rate" inputmode="decimal" value="${esc(S.rate)}">
     ${lb('Tax set-aside rate (%)')}<input id="p-tax" inputmode="decimal" value="${esc(S.taxPct)}"></div>
@@ -755,6 +756,7 @@ function closeViewer(slide){
   if(slide){im.style.transition='transform .22s ease-in';im.style.transform='translate('+V.tx+'px,'+(V.H||800)+'px) scale('+V.s+')';v.style.transition='background .22s ease';v.style.background='rgba(0,0,0,0)';setTimeout(done,230)}else done();
 }
 function initViewer(){
+  try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>setTimeout(syncThemeColor,50))}catch(e){}
   const st=$('#vstage'),vw=$('#viewer'),pts=new Map();let g=null,lastTap=0,lastPt=null;
   const mid=()=>{const a=[...pts.values()];return a.length>=2?{x:(a[0].x+a[1].x)/2,y:(a[0].y+a[1].y)/2,d:Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y)}:{x:a[0].x,y:a[0].y,d:0}};
   const rel=(x,y)=>{const r=st.getBoundingClientRect();return{x:x-r.left-r.width/2,y:y-r.top-r.height/2}};
