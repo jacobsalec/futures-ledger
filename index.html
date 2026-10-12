@@ -106,6 +106,7 @@ body.bootin #app,body.bootin .nav{animation:fi .55s ease-out}
 .vbar{display:flex;justify-content:space-between;align-items:center;padding:calc(env(safe-area-inset-top,0px) + 8px) 12px 8px}
 .vscroll{flex:1;overflow:auto;-webkit-overflow-scrolling:touch;touch-action:pan-x pan-y;overscroll-behavior:contain}
 #vimg{display:block;width:100%;height:auto}#viewer.full #vimg{width:auto;max-width:none}
+select{width:100%;height:44px;background:var(--bg);color:var(--tx);border:1px solid var(--line);border-radius:12px;padding:0 12px;font:inherit;font-size:16px;-webkit-appearance:none;appearance:none;min-width:0}
 .fade{animation:fi .22s ease-out}
 .sheet.open{animation:fo .2s ease-out}
 .sheet.open .pane{animation:su .28s cubic-bezier(.2,.8,.2,1)}
@@ -301,7 +302,10 @@ function taxHTML(E,y){
     ${tw('Payouts received',pu,pc,'up')}${tw('PA trading fees',-f,-f*fx)}${tw('Other expenses',-ex,-ex*fx)}${tw('Net taxable income',nu,nu*fx,cls(nu),1)}${tw('Tax to set aside ('+S.taxPct+'%)',tx,tx*fx,'org')}</div>`}).join('');
   const X=[...S.expenses].sort((a,b)=>b.date.localeCompare(a.date));
   h+=`<div class="lbl" style="margin:18px 0 6px">Expenses</div><div class="card">${X.length?X.map(x=>`<div class="item row" data-xedit="${x.id}"><div><b>${esc(x.cat)}</b><div class="sub" style="margin:0">${fd(x.date,{month:'short',day:'numeric',year:'numeric'})}${x.note?' · '+esc(x.note):''}</div></div><b>${money(n(x.amount))}</b></div>`).join(''):'<div class="msg">Platform, data and prop firm fees, education and similar costs. Ask your accountant what is deductible.</div>'}</div><div class="stack"><button class="btn alt" data-act="exp">Add expense</button></div>`;
-  h+=`<div class="lbl" style="margin:18px 0 6px">Backup and export</div><div class="stack"><button class="btn alt" data-act="backup">Export full backup (JSON)</button><button class="btn alt" data-act="restore">Restore from backup</button><button class="btn alt" data-act="csv">Export trades CSV</button><button class="btn alt" data-act="xcsv">Export expenses CSV</button><button class="btn alt" data-act="wcsv">Export payouts CSV</button><button class="btn alt" data-act="csvimp">Import from CSV</button></div><div class="msg">Your data lives only in this browser. Export a backup regularly, and check totals against your broker's official statements. To move data between devices, export the CSVs on one and tap Import from CSV on the other. Imports add to what is already there and skip duplicates. Restore from backup replaces everything instead.</div>`;
+  if(!pdfYear||(pdfYear!=='all'&&!yrs.includes(pdfYear)))pdfYear=yrs[0]||'all';
+  h+=`<div class="lbl" style="margin:18px 0 6px">PDF reports</div><div class="card"><label style="margin-top:0">Period</label><select id="pdf-year">${yrs.map(y=>`<option value="${y}"${pdfYear==y?' selected':''}>${y}</option>`).join('')}<option value="all"${pdfYear==='all'?' selected':''}>All years</option></select>
+  <div class="stack" style="margin:12px 0 0"><button class="btn blue" data-act="pdftax">Tax summary PDF</button><button class="btn alt" data-act="pdftrades">Trades PDF</button><button class="btn alt" data-act="pdfexp">Expenses PDF</button><button class="btn alt" data-act="pdfpay">Payouts PDF</button></div><div class="msg" style="margin:6px 0 0">Easy to read and share on any phone or computer. The Trades PDF includes both Eval and PA days.</div></div>
+  <div class="lbl" style="margin:18px 0 6px">Backup and export</div><div class="stack"><button class="btn alt" data-act="backup">Export full backup (JSON)</button><button class="btn alt" data-act="restore">Restore from backup</button><button class="btn alt" data-act="csv">Export trades CSV</button><button class="btn alt" data-act="xcsv">Export expenses CSV</button><button class="btn alt" data-act="wcsv">Export payouts CSV</button><button class="btn alt" data-act="csvimp">Import from CSV</button></div><div class="msg">Your data lives only in this browser. Export a backup regularly, and check totals against your broker's official statements. To move data between devices, export the CSVs on one and tap Import from CSV on the other. Imports add to what is already there and skip duplicates. Restore from backup replaces everything instead.</div>`;
   return h;
 }
 function reconHTML(){return `<div class="lbl" style="margin:18px 0 6px">Reconcile with your broker</div><div class="card"><label style="margin-top:0">Month</label><input type="month" id="rc-m" value="${rmon}"><label>Broker's net P&amp;L for that month</label><input id="rc-v" inputmode="decimal" value="${esc(S.recon[rmon]??'')}"><div class="msg" id="rc-o"></div></div>`}
@@ -716,6 +720,128 @@ async function cleanImgs(){
   if(gone&&sess)schedSync();
 }
 function openViewer(id){const v=$('#viewer'),im=$('#vimg');v.classList.remove('full');$('#vfit').textContent='Actual size';im.src=imgCache.get(id)||'';if(!im.src)imgGet(id).then(r=>{if(r)im.src=r.url});v.classList.add('on')}
+/* ---------- PDF reports (no libraries) ---------- */
+let pdfYear=null;
+const HW=[278,278,355,556,556,889,667,191,333,333,389,584,278,333,278,278,556,556,556,556,556,556,556,556,556,556,278,278,584,584,584,556,1015,667,667,722,722,667,611,778,722,278,500,667,556,833,722,778,667,778,722,667,611,722,667,944,667,667,611,278,278,278,469,556,333,556,556,500,556,556,278,556,556,222,222,500,222,833,556,556,556,556,333,500,278,556,500,722,500,500,500,334,260,334,584];
+const pA=s=>String(s==null?'':s).replace(/[\u2212\u2013\u2014]/g,'-').replace(/\u00d7/g,'x').replace(/[\u00b7\u2022]/g,'-').replace(/[\u2018\u2019]/g,"'").replace(/[\u201c\u201d]/g,'"').replace(/\s+/g,' ').replace(/[^\x20-\x7E]/g,'?');
+const pM=(v,sg)=>(v<0?'-':sg&&v>0?'+':'')+'$'+Math.abs(v).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+const pGood=[34,125,75],pBad=[190,60,50],pGrey=[110,110,110];
+const pCol=v=>v>0?pGood:v<0?pBad:[0,0,0];
+function pdfDoc(){
+  const W=612,H=792,M=40,pages=[];let cur=null,y=0;
+  const sw=(s,z,b)=>{let w=0;for(let i=0;i<s.length;i++)w+=HW[s.charCodeAt(i)-32]||556;return w*z/1000*(b?1.05:1)};
+  const esc=s=>s.replace(/[\\()]/g,m=>'\\'+m),f=v=>(+v).toFixed(2),col=c=>c.map(v=>(v/255).toFixed(3)).join(' ');
+  const fit=(s,w,z,b)=>{s=pA(s);if(sw(s,z,b)<=w)return s;while(s.length>1&&sw(s+'...',z,b)>w)s=s.slice(0,-1);return s+'...'};
+  const d={W,H,M,sw,fit,
+    page(){cur=[];pages.push(cur);y=H-M},
+    get y(){return y},set y(v){y=v},
+    text(x,yy,s,z=10,b=false,c=[0,0,0]){cur.push(`BT /F${b?2:1} ${z} Tf ${col(c)} rg ${f(x)} ${f(yy)} Td (${esc(pA(s))}) Tj ET`)},
+    rtext(xr,yy,s,z=10,b=false,c=[0,0,0]){s=pA(s);d.text(xr-sw(s,z,b),yy,s,z,b,c)},
+    rect(x,yy,w,h,c){cur.push(`${col(c)} rg ${f(x)} ${f(yy)} ${f(w)} ${f(h)} re f`)},
+    hline(x1,x2,yy,c=[200,200,200],w=.6){cur.push(`${col(c)} RG ${w} w ${f(x1)} ${f(yy)} m ${f(x2)} ${f(yy)} l S`)},
+    ensure(h,onNew){if(y-h<M+26){d.page();if(onNew)onNew()}},
+    build(footer){
+      const n=pages.length;pages.forEach((p,i)=>{cur=p;d.hline(M,W-M,M+12);d.text(M,M,footer,8,false,[120,120,120]);d.rtext(W-M,M,'Page '+(i+1)+' of '+n,8,false,[120,120,120])});
+      const o=['<< /Type /Catalog /Pages 2 0 R >>','<< /Type /Pages /Kids ['+pages.map((_,i)=>(5+i*2)+' 0 R').join(' ')+'] /Count '+n+' >>','<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>','<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>'];
+      pages.forEach((p,i)=>{const t=p.join('\n');o.push('<< /Type /Page /Parent 2 0 R /MediaBox [0 0 '+W+' '+H+'] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents '+(6+i*2)+' 0 R >>');o.push('<< /Length '+t.length+' >>\nstream\n'+t+'\nendstream')});
+      let out='%PDF-1.4\n';const offs=[];o.forEach((x,i)=>{offs.push(out.length);out+=(i+1)+' 0 obj\n'+x+'\nendobj\n'});
+      const xr=out.length;out+='xref\n0 '+(o.length+1)+'\n0000000000 65535 f \n'+offs.map(v=>String(v).padStart(10,'0')+' 00000 n \n').join('')+'trailer\n<< /Size '+(o.length+1)+' /Root 1 0 R >>\nstartxref\n'+xr+'\n%%EOF';
+      return new Blob([out],{type:'application/pdf'});
+    }};
+  return d;
+}
+function pdfHead(d,title,sub){
+  d.page();d.text(d.M,d.H-d.M-6,'FUTURES LEDGER',8,true,[130,130,130]);
+  d.text(d.M,d.H-d.M-30,title,20,true);d.text(d.M,d.H-d.M-46,sub,9.5,false,pGrey);d.y=d.H-d.M-62;d.hline(d.M,d.W-d.M,d.y);d.y-=14;
+}
+function pdfTable(d,cols,rows,o={}){
+  const z=o.z||9,rh=o.rh||15,x0=d.M,total=cols.reduce((a,c)=>a+c.w,0);
+  const head=()=>{d.rect(x0,d.y-rh,total,rh,[232,232,232]);let x=x0;cols.forEach(c=>{if(c.a=='r')d.rtext(x+c.w-4,d.y-rh+4.5,c.h,z,true);else d.text(x+4,d.y-rh+4.5,d.fit(c.h,c.w-8,z,true),z,true);x+=c.w});d.y-=rh};
+  d.ensure(rh*3);head();
+  rows.forEach((r,i)=>{
+    const extra=o.sub?o.sub(r):[],need=rh+extra.length*10.5;d.ensure(need,head);
+    if(i%2)d.rect(x0,d.y-need,total,need,[247,247,247]);
+    let x=x0;cols.forEach(c=>{const t=pA(c.v(r)),cc=c.c?c.c(r):[0,0,0];if(c.a=='r')d.rtext(x+c.w-4,d.y-rh+4.5,t,z,false,cc);else d.text(x+4,d.y-rh+4.5,d.fit(t,c.w-8,z),z,false,cc);x+=c.w});
+    d.y-=rh;extra.forEach(e=>{d.text(x0+16,d.y-7.5,d.fit(e,total-24,7.5),7.5,false,pGrey);d.y-=10.5});
+  });
+  if(o.total){d.ensure(rh+4,head);d.hline(x0,x0+total,d.y,[90,90,90],.8);let x=x0;cols.forEach(c=>{const t=o.total[c.k]; if(t!=null){const tc=o.totalColor&&o.totalColor[c.k]!=null?pCol(o.totalColor[c.k]):[0,0,0];if(c.a=='r')d.rtext(x+c.w-4,d.y-rh+4.5,t,z,true,tc);else d.text(x+4,d.y-rh+4.5,t,z,true,tc)}x+=c.w});d.y-=rh}
+  d.y-=6;
+}
+const pdfYears=()=>[...new Set([...S.entries,...S.expenses,...S.withdrawals].map(e=>String(e.date||'').slice(0,4)).filter(Boolean))].sort();
+const perLabel=p=>p==='all'?'All years':p;
+const inPer=(dt,p)=>p==='all'||String(dt).startsWith(p);
+function pdfWho(){const n=(S.prefs||{}).name;return (n?'Prepared for '+n+'  |  ':'')+'Generated '+new Date().toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric'})}
+function kvRow(d,label,usd,cad,o={}){d.ensure(18);const yy=d.y-12;if(o.b)d.rect(d.M,d.y-16,d.W-2*d.M,17,[240,244,250]);d.text(d.M+6,yy,label,10,!!o.b);d.rtext(d.M+330,yy,usd,10,!!o.b,o.c||[0,0,0]);d.rtext(d.W-d.M-6,yy,cad,10,!!o.b,o.c||[0,0,0]);d.y-=18}
+function pdfTaxDoc(per){
+  const d=pdfDoc(),yrs=per==='all'?pdfYears():[per];let first=true;
+  (yrs.length?yrs:[String(new Date().getFullYear())]).forEach(yr=>{
+    const L=S.entries.filter(e=>String(e.date).startsWith(yr)),P=S.withdrawals.filter(e=>String(e.date).startsWith(yr)).sort((a,b)=>a.date.localeCompare(b.date)),X=S.expenses.filter(e=>String(e.date).startsWith(yr));
+    const pu=sum(P,'usd'),pc=sum(P,'cad'),ex=sum(X,'amount'),fx=pu?pc/pu:n(S.fx)||0,f=S.deductFees===false?0:sum(L.filter(e=>(e.mode||'pa')=='pa'),'fees'),nu=pu-f-ex,tx=Math.max(0,nu)*n(S.taxPct)/100;
+    pdfHead(d,'Tax summary '+yr,pdfWho());
+    d.text(d.M+6,d.y-2,'',9);d.rtext(d.M+330,d.y-2,'USD',9,true,pGrey);d.rtext(d.W-d.M-6,d.y-2,'CAD',9,true,pGrey);d.y-=10;
+    kvRow(d,'Payouts received',pM(pu),pM(pc),{c:pGood});
+    kvRow(d,'PA trading fees',pM(-f),pM(-f*fx));
+    kvRow(d,'Other expenses',pM(-ex),pM(-ex*fx));
+    kvRow(d,'Net taxable income',pM(nu,1),pM(nu*fx,1),{b:1,c:pCol(nu)});
+    kvRow(d,'Tax to set aside ('+n(S.taxPct)+'%)',pM(tx),pM(tx*fx),{c:[200,120,40]});
+    d.y-=8;d.text(d.M,d.y-9,'Payouts',11,true);d.y-=16;
+    if(P.length)pdfTable(d,[{h:'Date',w:78,v:r=>r.date},{h:'USD',w:100,a:'r',k:'u',v:r=>pM(n(r.usd))},{h:'Rate',w:70,a:'r',v:r=>n(r.fx).toFixed(4)},{h:'CAD',w:110,a:'r',k:'c',v:r=>pM(n(r.cad))},{h:'Note',w:174,v:r=>r.note||''}],P,{total:{Date:null,u:pM(pu),c:pM(pc)}});
+    else{d.text(d.M+4,d.y-10,'No payouts recorded for '+yr+'.',9,false,pGrey);d.y-=22}
+    d.text(d.M,d.y-9,'Expenses by category',11,true);d.y-=16;
+    const cats={};X.forEach(e=>{cats[e.cat||'Other']=(cats[e.cat||'Other']||0)+n(e.amount)});
+    if(Object.keys(cats).length){pdfTable(d,[{h:'Category',w:290,v:r=>r[0]},{h:'USD',w:120,a:'r',k:'u',v:r=>pM(r[1])},{h:'CAD',w:122,a:'r',k:'c',v:r=>pM(r[1]*fx)}],Object.entries(cats),{total:{Category:null,u:pM(ex),c:pM(ex*fx)}})}
+    else{d.text(d.M+4,d.y-10,'No expenses recorded for '+yr+'.',9,false,pGrey);d.y-=22}
+    d.ensure(70);d.hline(d.M,d.W-d.M,d.y);d.y-=12;
+    ['Only PA account trading fees are subtracted from payouts. Eval trades never count.'+(S.deductFees===false?' (Fee subtraction is switched off.)':''),
+     'CAD amounts use the exchange rate saved with each payout; expenses and fees use the average payout rate'+(pu?'':' (latest saved rate)')+'.',
+     'The set-aside is an estimate at your chosen rate, not a tax calculation. Totals come from your own records,','so check them against your prop firm statements and confirm the treatment with your accountant.'].forEach(t=>{d.text(d.M,d.y-8,t,8.5,false,pGrey);d.y-=11});
+    first=false;
+  });
+  return d.build('Futures Ledger  |  Tax summary  |  '+perLabel(per));
+}
+function pdfTradesDoc(per){
+  const d=pdfDoc(),E=S.entries.filter(e=>inPer(e.date,per)).sort((a,b)=>a.date.localeCompare(b.date)||String(a.id).localeCompare(String(b.id)));
+  pdfHead(d,'Trades report',perLabel(per)+'  |  '+pdfWho());
+  ['pa','eval'].forEach(m=>{const X=E.filter(e=>(e.mode||'pa')==m);if(!X.length)return;
+    kvRow(d,(m=='pa'?'PA':'Eval')+' - '+X.length+' entr'+(X.length==1?'y':'ies')+', '+new Set(X.map(e=>e.date)).size+' days','Gross '+pM(sum(X,'gross'),1),'Net '+pM(sum(X,'net'),1),{b:1,c:pCol(sum(X,'net'))})});
+  d.y-=6;
+  if(!E.length){d.text(d.M+4,d.y-10,'No trades recorded for this period.',9.5,false,pGrey);return d.build('Futures Ledger  |  Trades  |  '+perLabel(per))}
+  const sub=e=>(e.trades||[]).filter(t=>t.symbol||n(t.qty)).map(t=>(t.symbol||'Trade')+'  '+(t.side||'Long')+'  '+(n(t.qty)?n(t.qty)+' micro'+(n(t.qty)==1?'':'s'):'')+(t.entry?'   '+t.entry+' -> '+t.exit:'')+(t.pnl!==''&&t.pnl!=null&&(n(t.pnl)||t.entry)?'   P&L '+pM(n(t.pnl),1):'')+((e.accounts>1)?'   (per account)':''));
+  pdfTable(d,[{h:'Date',w:60,v:e=>e.date},{h:'Type',w:34,v:e=>(e.mode||'pa')=='eval'?'Eval':'PA'},{h:'Accts',w:34,a:'r',v:e=>String(e.accounts||1)},{h:'Micros',w:42,a:'r',v:e=>String(+n(e.micros).toFixed(2))},{h:'Fees',w:56,a:'r',k:'f',v:e=>pM(n(e.fees))},{h:'Gross',w:66,a:'r',k:'g',v:e=>pM(n(e.gross),1),c:e=>pCol(n(e.gross))},{h:'Net',w:66,a:'r',k:'n',v:e=>pM(n(e.net),1),c:e=>pCol(n(e.net))},{h:'Tags / notes',w:174,v:e=>[(e.tags||[]).join(', '),e.notes||''].filter(Boolean).join(' - ')}],E,{sub,total:{Date:null,f:pM(sum(E,'fees')),g:pM(sum(E,'gross'),1),n:pM(sum(E,'net'),1)},totalColor:{g:sum(E,'gross'),n:sum(E,'net')}});
+  return d.build('Futures Ledger  |  Trades  |  '+perLabel(per));
+}
+function pdfExpDoc(per){
+  const d=pdfDoc(),X=S.expenses.filter(e=>inPer(e.date,per)).sort((a,b)=>a.date.localeCompare(b.date));
+  pdfHead(d,'Expenses report',perLabel(per)+'  |  '+pdfWho());
+  if(!X.length){d.text(d.M+4,d.y-10,'No expenses recorded for this period.',9.5,false,pGrey);return d.build('Futures Ledger  |  Expenses  |  '+perLabel(per))}
+  pdfTable(d,[{h:'Date',w:80,v:r=>r.date},{h:'Category',w:130,v:r=>r.cat||''},{h:'Amount (USD)',w:100,a:'r',k:'a',v:r=>pM(n(r.amount))},{h:'Note',w:222,v:r=>r.note||''}],X,{total:{Date:null,a:pM(sum(X,'amount'))}});
+  const cats={};X.forEach(e=>{cats[e.cat||'Other']=(cats[e.cat||'Other']||0)+n(e.amount)});
+  d.ensure(40);d.text(d.M,d.y-9,'By category',11,true);d.y-=16;
+  pdfTable(d,[{h:'Category',w:210,v:r=>r[0]},{h:'Total (USD)',w:120,a:'r',v:r=>pM(r[1])}],Object.entries(cats));
+  return d.build('Futures Ledger  |  Expenses  |  '+perLabel(per));
+}
+function pdfPayDoc(per){
+  const d=pdfDoc(),P=S.withdrawals.filter(e=>inPer(e.date,per)).sort((a,b)=>a.date.localeCompare(b.date));
+  pdfHead(d,'Payouts report',perLabel(per)+'  |  '+pdfWho());
+  if(!P.length){d.text(d.M+4,d.y-10,'No payouts recorded for this period.',9.5,false,pGrey);return d.build('Futures Ledger  |  Payouts  |  '+perLabel(per))}
+  pdfTable(d,[{h:'Date',w:70,v:r=>r.date},{h:'USD',w:82,a:'r',k:'u',v:r=>pM(n(r.usd))},{h:'Rate',w:56,a:'r',v:r=>n(r.fx).toFixed(4)},{h:'CAD',w:90,a:'r',k:'c',v:r=>pM(n(r.cad))},{h:'Set aside USD',w:80,a:'r',k:'su',v:r=>pM(n(r.setUsd))},{h:'Set aside CAD',w:80,a:'r',k:'sc',v:r=>pM(n(r.setCad))},{h:'Note',w:74,v:r=>r.note||''}],P,{total:{Date:null,u:pM(sum(P,'usd')),c:pM(sum(P,'cad')),su:pM(sum(P,'setUsd')),sc:pM(sum(P,'setCad'))}});
+  d.text(d.M,d.y-9,'Rates are USD to CAD, saved with each payout. Set aside = your tax set-aside rate at the time.',8.5,false,pGrey);
+  return d.build('Futures Ledger  |  Payouts  |  '+perLabel(per));
+}
+function deliverPdf(blob,name){
+  const mobile=/iPhone|iPad|Android/i.test(navigator.userAgent||'')||(navigator.maxTouchPoints>1&&/Mac/.test(navigator.platform||''));
+  const dl=()=>{const u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),30000)};
+  try{const file=new File([blob],name,{type:'application/pdf'});
+    if(mobile&&navigator.canShare&&navigator.canShare({files:[file]})){navigator.share({files:[file],title:name}).catch(e=>{if(!e||e.name!=='AbortError')dl()});return}}catch(e){}
+  dl();
+}
+function mkPdf(kind){
+  try{
+    const per=pdfYear||'all',fn={tax:pdfTaxDoc,trades:pdfTradesDoc,exp:pdfExpDoc,pay:pdfPayDoc}[kind];
+    deliverPdf(fn(per),'futures-ledger-'+({tax:'tax-summary',trades:'trades',exp:'expenses',pay:'payouts'}[kind])+'-'+(per==='all'?'all-years':per)+'.pdf');
+    toast('PDF ready.');
+  }catch(e){toast('Could not make the PDF.')}
+}
 function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>t.classList.remove('on'),5000)}
 function parseCSV(t){t=t.replace(/^\uFEFF/,'');const R=[];let r=[],c='',q=false;for(let i=0;i<t.length;i++){const ch=t[i];if(q){if(ch=='"'){if(t[i+1]=='"'){c+='"';i++}else q=false}else c+=ch}else if(ch=='"')q=true;else if(ch==','){r.push(c);c=''}else if(ch=='\n'||ch=='\r'){if(ch=='\r'&&t[i+1]=='\n')i++;r.push(c);c='';R.push(r);r=[]}else c+=ch}if(c!==''||r.length){r.push(c);R.push(r)}return R.filter(x=>x.some(v=>v!==''))}
 function normDate(v){v=String(v||'').trim();if(/^\d{4}-\d{2}-\d{2}$/.test(v))return v;const d=new Date(v);return isNaN(d)?null:ymd(d)}
@@ -802,6 +928,7 @@ document.addEventListener('click',e=>{
   else if(a=='csvimp')$('#csvin').click();
   else if(a=='close'||a=='done')closeSheet();
   else if(a=='addtrade'){pull();draft.trades.push({symbol:'',side:'Long',qty:'',pnl:''});paint()}
+  else if(a=='pdftax')mkPdf('tax');else if(a=='pdftrades')mkPdf('trades');else if(a=='pdfexp')mkPdf('exp');else if(a=='pdfpay')mkPdf('pay');
   else if(a=='csv')csv();else if(a=='xcsv')xcsv();
   else if(a=='backup')dlf('futures-ledger-backup-'+today()+'.json',JSON.stringify(S),'application/json');
   else if(a=='restore')$('#bk').click();
@@ -830,7 +957,7 @@ document.addEventListener('input',e=>{
   if(el.id=='rc-m'){rmon=el.value||rmon;$('#rc-v').value=S.recon[rmon]??'';rcalc()}
   if(el.id=='rc-v'){S.recon[rmon]=el.value;save();rcalc()}
 });
-document.addEventListener('change',e=>{if(e.target.dataset&&e.target.dataset.prefc){const y=window.scrollY;render();window.scrollTo(0,y)}if(e.target.id=='tx-pct')render();if(e.target.id=='w-date')doFx()});
+document.addEventListener('change',e=>{if(e.target.id=='pdf-year')pdfYear=e.target.value;if(e.target.dataset&&e.target.dataset.prefc){const y=window.scrollY;render();window.scrollTo(0,y)}if(e.target.id=='tx-pct')render();if(e.target.id=='w-date')doFx()});
 $('#file').addEventListener('change',e=>{const f=[...e.target.files];e.target.value='';if(f.length)scan(f)});
 $('#imgin').addEventListener('change',e=>{const f=[...e.target.files];e.target.value='';if(f.length)addImgs(f)});
 $('#avin').addEventListener('change',async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;try{S.prefs=S.prefs||{};S.prefs.avatar=await avatarFrom(f);save();render()}catch(x){toast('Could not use that photo.')}});
