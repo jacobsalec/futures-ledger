@@ -36,7 +36,7 @@ h1{font-size:26px;margin:8px 0 2px;font-weight:650;letter-spacing:-.02em}
 .row{display:flex;justify-content:space-between;align-items:center;gap:12px}
 .item{padding:14px 0;border-top:1px solid var(--line);cursor:pointer}.item:first-child{border-top:0}
 .nav{position:fixed;left:0;right:0;bottom:calc(-1 * var(--nd,0px));display:flex;justify-content:center;gap:4px;background:var(--bg);border-top:1px solid var(--line);padding:8px 8px calc(8px + env(safe-area-inset-bottom,0px))}
-.nav button{flex:1;max-width:130px;background:none;border:0;color:var(--mut);padding:10px 2px;border-radius:12px;font:inherit;font-size:13px}
+.nav button{flex:1;max-width:130px;background:none;border:0;color:var(--mut);padding:8px 2px 5px;border-radius:12px;font:inherit;font-size:13px}
 .nav button.on{color:var(--tx);background:var(--card)}
 .btn{background:var(--acc);color:var(--btntx,#fff);border:0;border-radius:14px;padding:14px 18px;font:inherit;font-weight:600;width:100%}
 .btn.alt{background:var(--card);color:var(--tx);border:1px solid var(--line)}
@@ -658,7 +658,7 @@ const rgbaOf=(h,a)=>{const c=hex2(h);return c?`rgba(${c[0]},${c[1]},${c[2]},${a}
 const onColor=h=>{const c=hex2(h);if(!c)return '';const l=c.map(v=>{v/=255;return v<=.03928?v/12.92:Math.pow((v+.055)/1.055,2.4)});return (.2126*l[0]+.7152*l[1]+.0722*l[2])>.45?'#12202e':'#fff'};
 const noAnim=()=>!!(S.dev&&S.dev.anim===false);
 function envBottom(){try{const p=document.createElement('div');p.style.cssText='position:fixed;left:0;top:0;visibility:hidden;padding-bottom:env(safe-area-inset-bottom,0px);padding-top:env(safe-area-inset-top,0px)';document.body.appendChild(p);const cs=getComputedStyle(p),v={b:parseFloat(cs.paddingBottom)||0,t:parseFloat(cs.paddingTop)||0};p.remove();return v}catch(e){return{b:0,t:0}}}
-const maxNd=()=>Math.max(0,Math.round(8+envBottom().b-2)),autoNd=()=>Math.min(maxNd(),Math.max(0,Math.round(envBottom().b-10))),curNd=()=>Math.min(maxNd(),(S.dev&&S.dev.nd!=null)?S.dev.nd:autoNd());
+const maxNd=()=>Math.max(0,Math.round(8+envBottom().b-1)),autoNd=()=>Math.min(maxNd(),Math.max(0,Math.round(envBottom().b-10))),curNd=()=>{const v=(S.dev&&S.dev.nd!=null)?S.dev.nd:autoNd();return v>=maxNd()-2?maxNd():Math.min(maxNd(),v)};
 function diagText(){try{const e=envBottom(),vv=window.visualViewport,nv=document.querySelector('.nav'),r=nv&&nv.getBoundingClientRect();return 'Screen '+screen.width+'x'+screen.height+' | Viewport '+window.innerWidth+'x'+window.innerHeight+(vv?' | Visual '+Math.round(vv.width)+'x'+Math.round(vv.height):'')+' | Insets top '+e.t+' bottom '+e.b+' | '+((navigator.standalone||(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches))?'Home Screen app':'Browser')+(r?' | Bar bottom '+Math.round(r.bottom):'')+' | Lowered '+curNd()+'px (max '+maxNd()+')'}catch(e){return ''}}
 function syncThemeColor(){try{const m=document.querySelector('meta[name="theme-color"]');if(!m||!document.body)return;const c=getComputedStyle(document.body).backgroundColor.match(/\d+/g);if(c&&c.length>=3)m.setAttribute('content','#'+c.slice(0,3).map(v=>(+v).toString(16).padStart(2,'0')).join(''))}catch(e){}}
 function applyPrefs(){
