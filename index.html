@@ -218,7 +218,7 @@ function render(){
     <div class="card${evc()}"><div class="lbl">This year</div><div class="mid ${cls(net(y))}">${odo('year',money(net(y),1))}</div></div></div>
     <div style="height:14px"></div><div class="stack"><button class="btn blue" data-act="manual">Add Trade</button><button class="btn alt" data-act="exp">Add expense</button></div>
     ${E.length?`<div class="lbl" style="margin:18px 0 6px">Recent</div><div class="card">${E.slice(0,4).map(row).join('')}</div>`:''}`;
-  }else if(tab=='log'){h=`${hdr('Journal',1)}<div class="sub">${E.length} logged day${E.length==1?'':'s'}. Tap a date to add or edit.</div>`+calHTML(E)+(()=>{const p=cal.getFullYear()+'-'+pad(cal.getMonth()+1),M=E.filter(e=>e.date.startsWith(p)).sort((a,b)=>a.date.localeCompare(b.date));return `<div class="lbl" style="margin:14px 0 6px">${cal.toLocaleDateString(undefined,{month:'long',year:'numeric'})} logs, in date order</div>`+(M.length?`<div class="card">${M.map(row).join('')}</div>`:'<div class="empty">No days logged this month.</div>')})();
+  }else if(tab=='log'){h=`${hdr('Journal',1)}<div class="sub">${E.length} logged day${E.length==1?'':'s'}. Tap a date to add or edit.</div>`+calHTML(E)+(()=>{const p=cal.getFullYear()+'-'+pad(cal.getMonth()+1),M=E.filter(e=>e.date.startsWith(p)).sort((a,b)=>b.date.localeCompare(a.date));return `<div class="lbl" style="margin:14px 0 6px">${cal.toLocaleDateString(undefined,{month:'long',year:'numeric'})} logs, newest first</div>`+(M.length?`<div class="card">${M.map(row).join('')}</div>`:'<div class="empty">No days logged this month.</div>')})();
   }else if(tab=='stats'){h=`${hdr('Stats',1)}<div class="sub">${S.mode==='eval'?'Eval account':'PA account'} · all logged days</div>`+statsHTML(E)+reconHTML();
   }else if(tab=='settings')h=settingsHTML();
   else if(tab=='pay')h=payHTML();
@@ -658,7 +658,7 @@ const rgbaOf=(h,a)=>{const c=hex2(h);return c?`rgba(${c[0]},${c[1]},${c[2]},${a}
 const onColor=h=>{const c=hex2(h);if(!c)return '';const l=c.map(v=>{v/=255;return v<=.03928?v/12.92:Math.pow((v+.055)/1.055,2.4)});return (.2126*l[0]+.7152*l[1]+.0722*l[2])>.45?'#12202e':'#fff'};
 const noAnim=()=>!!(S.dev&&S.dev.anim===false);
 function envBottom(){try{const p=document.createElement('div');p.style.cssText='position:fixed;left:0;top:0;visibility:hidden;padding-bottom:env(safe-area-inset-bottom,0px);padding-top:env(safe-area-inset-top,0px)';document.body.appendChild(p);const cs=getComputedStyle(p),v={b:parseFloat(cs.paddingBottom)||0,t:parseFloat(cs.paddingTop)||0};p.remove();return v}catch(e){return{b:0,t:0}}}
-const maxNd=()=>Math.max(0,Math.round(8+envBottom().b-1)),autoNd=()=>Math.min(maxNd(),Math.max(0,Math.round(envBottom().b-10))),curNd=()=>{const v=(S.dev&&S.dev.nd!=null)?S.dev.nd:autoNd();return v>=maxNd()-2?maxNd():Math.min(maxNd(),v)};
+const maxNd=()=>Math.max(0,Math.round(8+envBottom().b-1)),autoNd=()=>envBottom().b>0?maxNd():0,curNd=()=>autoNd();
 function diagText(){try{const e=envBottom(),vv=window.visualViewport,nv=document.querySelector('.nav'),r=nv&&nv.getBoundingClientRect();return 'Screen '+screen.width+'x'+screen.height+' | Viewport '+window.innerWidth+'x'+window.innerHeight+(vv?' | Visual '+Math.round(vv.width)+'x'+Math.round(vv.height):'')+' | Insets top '+e.t+' bottom '+e.b+' | '+((navigator.standalone||(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches))?'Home Screen app':'Browser')+(r?' | Bar bottom '+Math.round(r.bottom):'')+' | Lowered '+curNd()+'px (max '+maxNd()+')'}catch(e){return ''}}
 function syncThemeColor(){try{const m=document.querySelector('meta[name="theme-color"]');if(!m||!document.body)return;const c=getComputedStyle(document.body).backgroundColor.match(/\d+/g);if(c&&c.length>=3)m.setAttribute('content','#'+c.slice(0,3).map(v=>(+v).toString(16).padStart(2,'0')).join(''))}catch(e){}}
 function applyPrefs(){
@@ -697,7 +697,7 @@ function settingsHTML(){
     <button class="btn alt" style="margin-top:14px;padding:10px" data-act="resetlook">Reset colours and size</button></div>
   <div class="card"><div class="lbl" style="margin-bottom:2px">Preferences</div>
     ${lb('Open the app in')}<div class="seg">${sg('startMode','last',sm,'Last used')}${sg('startMode','pa',sm,'PA')}${sg('startMode','eval',sm,'Eval')}</div>
-    ${lb('Tab bar height · this device')}<div class="row" style="gap:12px"><input id="p-nd" type="range" min="0" max="${Math.max(1,maxNd())}" step="1" value="${curNd()}" style="padding:0;height:34px;flex:1;min-height:0"><span class="lbl" id="p-ndv" style="min-width:64px;text-align:right">${curNd()}px lower</span></div><div class="msg" style="margin:2px 0 0">Drag right to move the Today, Journal, Stats, Payouts and Tax bar lower. All the way right puts the buttons at the very bottom of the visible screen, just above anything the phone draws over the page.</div>
+
     ${lb('Animations · this device')}<div class="seg">${sg('anim','on',an,'On',1)}${sg('anim','off',an,'Off',1)}</div>
     ${lb('PA accounts I trade')}<input id="p-accpa" inputmode="numeric" value="${defAcc('pa')}">${lb('Eval accounts I trade')}<input id="p-acceval" inputmode="numeric" value="${defAcc('eval')}"><div class="msg" style="margin:4px 0 0">New entries start with these counts. Each entry multiplies its profit, fees and micros by its number of accounts.</div>${lb('Fee per micro, round trip ($)')}<input id="p-rate" inputmode="decimal" value="${esc(S.rate)}">
     ${lb('Tax set-aside rate (%)')}<input id="p-tax" inputmode="decimal" value="${esc(S.taxPct)}"></div>
@@ -755,6 +755,7 @@ function closeViewer(slide){
   const done=()=>{v.classList.remove('on');v.style.background='';v.style.transition='';V.s=1;V.tx=V.ty=0;im.onload=null;im.style.opacity='0';im.removeAttribute&&im.removeAttribute('src');if(V.locked){V.locked=false;unlockScroll()}};
   if(slide){im.style.transition='transform .22s ease-in';im.style.transform='translate('+V.tx+'px,'+(V.H||800)+'px) scale('+V.s+')';v.style.transition='background .22s ease';v.style.background='rgba(0,0,0,0)';setTimeout(done,230)}else done();
 }
+window.addEventListener('resize',()=>{try{document.documentElement.style.setProperty('--nd',curNd()+'px')}catch(e){}});
 function initViewer(){
   try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>setTimeout(syncThemeColor,50))}catch(e){}
   const st=$('#vstage'),vw=$('#viewer'),pts=new Map();let g=null,lastTap=0,lastPt=null;
@@ -1079,7 +1080,6 @@ document.addEventListener('input',e=>{
   if(el.id=='tx-pct'){S.taxPct=n(el.value);save()}
   if(el.id=='p-name'){S.prefs=S.prefs||{};if(el.value.trim())S.prefs.name=el.value.trim();else delete S.prefs.name;save()}
   if(el.id=='p-accpa'||el.id=='p-acceval'){const v=Math.min(99,parseInt(el.value)||0);if(v>0){S.prefs=S.prefs||{};S.prefs[el.id=='p-accpa'?'accPA':'accEval']=v;save()}}
-  if(el.id=='p-nd'){S.dev=S.dev||{};S.dev.nd=+el.value;applyPrefs();save();const v=$('#p-ndv');if(v)v.textContent=el.value+'px lower'}
   if(el.id=='p-rate'){const v=n(el.value);if(v>0){S.rate=v;save()}}
   if(el.id=='p-tax'){S.taxPct=n(el.value);save()}
   if(el.dataset.prefc){S.prefs=S.prefs||{};S.prefs[el.dataset.prefc]=el.value;applyPrefs();save();return}
