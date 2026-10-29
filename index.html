@@ -113,6 +113,7 @@ select{width:100%;height:44px;background:var(--bg);color:var(--tx);border:1px so
 #app>*,.pane>*{zoom:var(--ts,1)}
 .nav button{zoom:var(--ts,1)}
 .dual{display:flex;align-items:baseline;gap:10px;white-space:nowrap}.dual .dc{display:inline-block;font-size:12px;font-weight:500;line-height:1.2;letter-spacing:0;opacity:.9}
+.notes{font-size:15px;margin-top:6px}.np{margin:0 0 7px;line-height:1.5}.nh{font-weight:650;margin:10px 0 4px}.nh:first-child{margin-top:0}.nli{display:flex;gap:9px;margin:0 0 4px;line-height:1.45}.nli>span:first-child{color:var(--mut);flex:none;min-width:14px}.nsp{height:6px}
 .cadl{white-space:nowrap;font-size:12px;font-weight:500;color:var(--mut);margin-top:1px}.cadl.up{color:var(--up)}.cadl.dn{color:var(--dn)}
 .fade{animation:fi .22s ease-out}
 .sheet.open{animation:fo .2s ease-out}
@@ -353,7 +354,7 @@ function paint0(){
   <label>Fee per micro, round trip ($)</label><input id="f-rate" inputmode="decimal" value="${S.rate}">
   <div class="card" style="margin-top:12px"><div class="row"><span>Total micros</span><b id="o-tm"></b></div><div class="row" style="margin-top:6px"><span>Fees &amp; commissions</span><b id="o-fees"></b></div><div class="row" style="margin-top:6px"><span>Gross P&amp;L</span><b id="o-gross"></b></div><div class="row" style="margin-top:6px"><span>Net P&amp;L (after fees)</span><b id="o-net"></b></div></div><div class="msg" id="o-acc" style="margin:6px 0 0"></div>
   <label>Tags</label><div>${TAGS.map(t=>`<button class="chip ${d.tags.includes(t)?'on':''}" data-tag="${t}">${t}</button>`).join('')}</div>
-  <label>Notes</label><textarea id="f-notes" rows="3" placeholder="Setups, mistakes, how it felt">${esc(d.notes||'')}</textarea>
+  <label>Notes</label><textarea id="f-notes" rows="5" placeholder="Setups, mistakes, how it felt. Press Enter for a new line, start a line with - for a bullet." style="line-height:1.5">${esc(d.notes||'')}</textarea>
   <div class="thumbs" style="margin-top:10px">${(d.imgs||[]).map((id,i)=>`<div class="th" data-viewimg="${id}"><img data-img="${id}" alt=""><button class="thx" data-rmimg="${i}" aria-label="Remove">✕</button></div>`).join('')}${(d.imgs||[]).length<8?'<button class="thadd" data-act="addimg"><b>+</b><span>Screenshot</span></button>':''}</div>
   <div class="stack" style="margin-top:16px"><button class="btn blue" data-act="save">Save day</button>${d.id?'<button class="btn alt" data-act="delete">Delete day</button>':''}</div>`;
 }
@@ -371,7 +372,7 @@ function view(){
   ${n(o.accounts)>1?`<div class="card"><div class="lbl" style="margin-bottom:4px">Per account (one of ${n(o.accounts)})</div>${r('Net P&amp;L',money(perAcct(o,'net'),1),cls(perAcct(o,'net')))}${r('Gross P&amp;L',money(perAcct(o,'gross'),1),cls(perAcct(o,'gross')))}${r('Fees &amp; commissions',money(perAcct(o,'fees')))}${r('Micros traded',perAcct(o,'micros'))}</div>`:''}
   ${tr.length?`<div class="card"><div class="lbl" style="margin-bottom:4px">Trades${n(o.accounts)>1?' (per account)':''}</div>${tr.map(t=>`<div class="row item" style="cursor:default"><div><b>${esc(t.symbol||'Trade')}</b><div class="sub" style="margin:0">${esc(t.side||'Long')}${t.res?' · '+(t.res=='W'?'Win':'Loss'):''}${n(t.qty)?' · '+n(t.qty)+' micro'+(n(t.qty)==1?'':'s'):''}${t.entry?' · '+esc(t.entry)+' → '+esc(t.exit):''}</div></div>${(t.entry||n(t.pnl))?`<b class="${cls(n(t.pnl))}">${money(n(t.pnl),1)}</b>`:''}</div>`).join('')}</div>`:''}
   ${(o.tags||[]).length?`<div class="card"><div class="lbl" style="margin-bottom:8px">Tags</div>${o.tags.map(t=>`<span class="chip on" style="pointer-events:none">${esc(t)}</span>`).join('')}</div>`:''}
-  ${o.notes?`<div class="card"><div class="lbl" style="margin-bottom:4px">Notes</div><div style="white-space:pre-wrap">${esc(o.notes)}</div></div>`:''}
+  ${o.notes?`<div class="card"><div class="lbl" style="margin-bottom:4px">Notes</div><div class="notes">${notesHTML(o.notes)}</div></div>`:''}
   ${(o.imgs||[]).length?`<div class="card"><div class="lbl" style="margin-bottom:8px">Screenshots</div><div class="thumbs">${o.imgs.map(id=>`<div class="th" data-viewimg="${id}"><img data-img="${id}" alt=""></div>`).join('')}</div></div>`:''}
   <div class="stack" style="margin-top:8px"><button class="btn blue" data-act="addsame" data-date="${esc(o.date)}">+ Add another entry for this day</button><button class="btn alt" data-act="delete" style="color:var(--dn)">Delete entry</button></div>`;
   setTimeout(loadImgs,0);stag();
@@ -504,7 +505,7 @@ function summary(o){
   const up=o.net>0,dn=o.net<0,msg=up?'Good trading!':dn?'It is what it is.':'Flat day.',sub=up?'Another green day in the books.':dn?'Log it, learn from it, move on.':'No gain, no loss.';
   const r=(a,v,c)=>`<div class="row item" style="cursor:default"><span>${a}</span><b class="${c||''}">${v}</b></div>`;
   $('#pane').innerHTML=`<div style="text-align:center;padding:12px 0 8px"><div style="font-size:28px;font-weight:650;letter-spacing:-.02em" class="${cls(o.net)}">${msg}</div><div class="sub" style="margin:4px 0 0">${sub}</div></div>
-  <div class="card" style="margin-top:12px">${r('Date',fd(o.date,{weekday:'short',month:'short',day:'numeric',year:'numeric'}))}${r('Account',(o.mode||'pa')=='eval'?'Eval':'PA')}${r('Net P&L',money(o.net,1),cls(o.net))}${fxr()?r('Net in CAD',cm(o.net*fxr(),1),cls(o.net)):''}${o.accounts>1?r('Accounts traded',o.accounts)+r('Net per account',money(o.net/o.accounts,1),cls(o.net)):''}${r('Micros traded',o.micros+(o.accounts>1?' ('+(+(o.micros/o.accounts).toFixed(4))+' × '+o.accounts+' accounts)':''))}${r('Fees & commissions',money(o.fees))}${r('Gross P&L',money(o.gross,1),cls(o.gross))}${(o.tags||[]).length?r('Tags',esc(o.tags.join(', '))):''}${o.notes?r('Notes',esc(o.notes)):''}</div>${wlLine(o)?`<div class="msg" style="text-align:center;margin:10px 0 12px">${wlLine(o)}</div>`:''}<button class="btn" data-act="done">Done</button>`;stag();
+  <div class="card" style="margin-top:12px">${r('Date',fd(o.date,{weekday:'short',month:'short',day:'numeric',year:'numeric'}))}${r('Account',(o.mode||'pa')=='eval'?'Eval':'PA')}${r('Net P&L',money(o.net,1),cls(o.net))}${fxr()?r('Net in CAD',cm(o.net*fxr(),1),cls(o.net)):''}${o.accounts>1?r('Accounts traded',o.accounts)+r('Net per account',money(o.net/o.accounts,1),cls(o.net)):''}${r('Micros traded',o.micros+(o.accounts>1?' ('+(+(o.micros/o.accounts).toFixed(4))+' × '+o.accounts+' accounts)':''))}${r('Fees & commissions',money(o.fees))}${r('Gross P&L',money(o.gross,1),cls(o.gross))}${(o.tags||[]).length?r('Tags',esc(o.tags.join(', '))):''}</div>${o.notes?`<div class="card"><div class="lbl" style="margin-bottom:6px">Notes</div><div class="notes">${notesHTML(o.notes)}</div></div>`:''}${wlLine(o)?`<div class="msg" style="text-align:center;margin:10px 0 12px">${wlLine(o)}</div>`:''}<button class="btn" data-act="done">Done</button>`;stag();
 }
 function shrink(file){return new Promise((ok,no)=>{const u=URL.createObjectURL(file),i=new Image();i.onload=()=>{const k=Math.min(1,1800/Math.max(i.width,i.height)),c=document.createElement('canvas');c.width=i.width*k;c.height=i.height*k;c.getContext('2d').drawImage(i,0,0,c.width,c.height);URL.revokeObjectURL(u);ok(c.toDataURL('image/jpeg',.85).split(',')[1])};i.onerror=()=>no({message:'Could not open that image.'});i.src=u})}
 async function scan(files){
@@ -938,7 +939,13 @@ function pdfWeekDoc(ws,E,IM){
       const T=(e.trades||[]).filter(t=>t.symbol||n(t.qty)||t.res);
       if(T.length)pdfTable(d,[{h:'Trade',w:92,v:t=>t.symbol||'Trade'},{h:'Side',w:46,v:t=>t.side||'Long'},{h:'Micros',w:46,a:'r',v:t=>n(t.qty)?String(+n(t.qty).toFixed(2)):''},{h:'Entry / exit',w:150,v:t=>t.entry?t.entry+' -> '+t.exit:''},{h:'Result',w:60,v:t=>t.res?NAMES[t.res]:'',c:t=>t.res=='W'?pGood:t.res=='L'?pBad:[0,0,0]},{h:N>1?'P&L (per acct)':'P&L',w:138,a:'r',v:t=>(t.pnl===''||t.pnl==null)?'':pM(n(t.pnl),1),c:t=>pCol(n(t.pnl))}],T,{z:8.5,rh:14});
       if((e.tags||[]).length){d.ensure(14);d.text(d.M+2,d.y-8,'Tags: '+e.tags.join(', '),8.5,false,[90,90,90]);d.y-=14}
-      if(e.notes){d.ensure(26);d.text(d.M+2,d.y-8,'NOTES',7,true,[120,120,120]);d.y-=12;d.wrap(e.notes,d.W-2*d.M-8,9.5).forEach(l=>{d.ensure(13);d.text(d.M+4,d.y-9,l,9.5,false,[40,40,40]);d.y-=13});d.y-=4}
+      if(e.notes){d.ensure(26);d.text(d.M+2,d.y-8,'NOTES',7,true,[120,120,120]);d.y-=12;noteParts(e.notes).forEach(p=>{
+        if(p.k=='sp'){d.y-=5;return}
+        if(p.k=='h'){d.ensure(18);d.y-=3;d.text(d.M+4,d.y-9,p.t,9.5,true,[30,30,30]);d.y-=14;return}
+        const ind=p.k=='li'?16:0,L=d.wrap(p.t,d.W-2*d.M-12-ind,9.5);
+        L.forEach((l,i)=>{d.ensure(13);if(p.k=='li'&&i==0)d.text(d.M+5,d.y-9,p.mark=='\u2022'?'-':p.mark,9.5,false,[110,110,110]);d.text(d.M+4+ind,d.y-9,l,9.5,false,[40,40,40]);d.y-=13});
+        d.y-=p.k=='li'?2:3});
+      d.y-=4}
       const P=(e.imgs||[]).map(id=>IM[id]).filter(Boolean).map(m=>{const k=Math.min(258/m.w,190/m.h,1);return{u:m.url,w:m.w,h:m.h,dw:m.w*k,dh:m.h*k}});
       for(let j=0;j<P.length;j+=2){const row=P.slice(j,j+2),rh=Math.max(...row.map(r=>r.dh));d.ensure(rh+16);row.forEach((r,q)=>{d.img(r.u,r.w,r.h,d.M+q*268,d.y-r.dh-2,r.dw,r.dh);d.box(d.M+q*268,d.y-r.dh-2,r.dw,r.dh,[210,210,210])});d.y-=rh+10}
     });
@@ -972,6 +979,19 @@ function mkPdf(kind){
   }catch(e){toast('Could not make the PDF.')}
 }
 function fitDual(){try{document.querySelectorAll('.dual').forEach(e=>{e.style.fontSize='';let fs=parseFloat(getComputedStyle(e).fontSize)||20;while(e.scrollWidth>e.clientWidth+1&&fs>12){fs-=1;e.style.fontSize=fs+'px'}})}catch(x){}}
+function noteParts(t){
+  const out=[];let blank=false;
+  String(t||'').replace(/\r/g,'').split('\n').forEach(raw=>{const l=raw.trim();
+    if(!l){blank=true;return}
+    if(blank&&out.length)out.push({k:'sp'});blank=false;
+    const m=l.match(/^([-*\u2022\u2013]|\d+[.)])\s+(.+)$/);
+    if(m)out.push({k:'li',mark:/^\d/.test(m[1])?m[1]:'\u2022',t:m[2]});
+    else if(/:$/.test(l)&&l.length<50)out.push({k:'h',t:l});
+    else out.push({k:'p',t:l});
+  });
+  return out;
+}
+function notesHTML(t){return noteParts(t).map(p=>p.k=='sp'?'<div class="nsp"></div>':p.k=='h'?'<div class="nh">'+esc(p.t)+'</div>':p.k=='li'?'<div class="nli"><span>'+esc(p.mark)+'</span><span>'+esc(p.t)+'</span></div>':'<p class="np">'+esc(p.t)+'</p>').join('')}
 function toast(m){const t=$('#toast');t.textContent=m;t.classList.remove('act');t.onclick=null;t.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>t.classList.remove('on'),5000)}
 function toastAct(m,fn){const t=$('#toast');t.textContent=m;t.classList.add('on','act');t.onclick=()=>{t.classList.remove('on','act');t.onclick=null;fn()};clearTimeout(toast.t);toast.t=setTimeout(()=>{t.classList.remove('on','act');t.onclick=null},10000)}
 function parseCSV(t){t=t.replace(/^\uFEFF/,'');const R=[];let r=[],c='',q=false;for(let i=0;i<t.length;i++){const ch=t[i];if(q){if(ch=='"'){if(t[i+1]=='"'){c+='"';i++}else q=false}else c+=ch}else if(ch=='"')q=true;else if(ch==','){r.push(c);c=''}else if(ch=='\n'||ch=='\r'){if(ch=='\r'&&t[i+1]=='\n')i++;r.push(c);c='';R.push(r);r=[]}else c+=ch}if(c!==''||r.length){r.push(c);R.push(r)}return R.filter(x=>x.some(v=>v!==''))}
