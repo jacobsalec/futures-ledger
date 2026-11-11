@@ -46,7 +46,7 @@ label{display:block;color:var(--mut);font-size:12px;margin:10px 0 4px}
 .sheet.open{display:flex}
 .pane{overscroll-behavior:contain;background:var(--bg);width:100%;max-width:560px;max-height:92%;overflow-y:auto;overflow-x:hidden;touch-action:pan-y;border-radius:22px 22px 0 0;padding:18px 16px calc(24px + env(safe-area-inset-bottom,0px))}
 .tr{display:grid;grid-template-columns:minmax(0,1fr) 56px auto auto 28px;grid-template-areas:"sym qty side res x";gap:6px;margin-bottom:8px;align-items:center}
-.t-sym{grid-area:sym}.t-qty{grid-area:qty}.t-side{grid-area:side}.t-res{grid-area:res}.t-x{grid-area:x}
+.t-sym{grid-area:sym;padding-left:6px!important;padding-right:4px!important}.t-sym::placeholder{text-transform:none}.t-qty{grid-area:qty}.t-side{grid-area:side}.t-res{grid-area:res}.t-x{grid-area:x}
 .seg.wl button{padding:10px 9px;min-width:31px}.seg .on.w{background:var(--up);color:#0e2417}.seg .on.lo{background:var(--dn);color:#2b0f0b}
 @media (max-width:389px){.tr{grid-template-columns:minmax(0,1fr) 56px 28px;grid-template-areas:"sym qty x" "side res res";row-gap:6px}}
 .seg{display:flex;border:1px solid var(--line);border-radius:12px;overflow:hidden}
@@ -80,7 +80,7 @@ body.bootin #app,body.bootin .nav{animation:fi .55s ease-out}
 .card.ev{background:var(--ev14,rgba(120,165,215,.14));border-color:var(--ev42,rgba(120,165,215,.42))}
 .cg.ev .cd{background:var(--ev10,rgba(120,165,215,.10));border-color:var(--ev30,rgba(120,165,215,.3))}
 .cg.ev .cd.up,.cg.ev .cd.dn{background:var(--ev28,rgba(120,165,215,.28))}.cg.ev .cd.up small{color:var(--up)}.cg.ev .cd.dn small{color:var(--dn)}
-.msw{flex:none}.msw button{padding:7px 13px;font-size:13px}
+.msw{flex:none}.msw button{padding:7px 10px;font-size:12.5px}
 .seg .on.e{background:var(--ev,#8fb4de);color:var(--evtx,#12202e)}.seg .on.p{background:var(--tx);color:var(--bg)}
 .cd.hd{border-color:rgba(165,115,225,.9);box-shadow:inset 0 0 0 1px rgba(165,115,225,.3)}
 .cd.hd:not(.up):not(.dn){background:rgba(165,115,225,.14)}
@@ -89,7 +89,7 @@ body.bootin #app,body.bootin .nav{animation:fi .55s ease-out}
 .hchip{display:inline-block;background:rgba(165,115,225,.16);border:1px solid rgba(165,115,225,.6);color:#9b6bdc;border-radius:20px;padding:4px 11px;font-size:12px}
 .hnote{border-color:rgba(165,115,225,.35)}
 .trr{display:flex;align-items:center;gap:10px;flex:none}
-.hdr{align-items:center}.hdr h1{font-size:24px;margin:6px 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hdr{align-items:center}.hdr h1{font-size:22px;margin:6px 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .avatar{width:38px;height:38px;border-radius:50%;border:2px solid var(--line);padding:0;overflow:hidden;background:var(--card);color:var(--tx);display:flex;align-items:center;justify-content:center;font:inherit;font-weight:650;font-size:16px;flex:none}
 .av-img{width:100%;height:100%;object-fit:cover;display:block}
 .avbig{width:92px;height:92px;border-radius:50%;border:2px solid var(--line);overflow:hidden;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:36px;font-weight:650;flex:none}
@@ -115,6 +115,11 @@ select{width:100%;height:44px;background:var(--bg);color:var(--tx);border:1px so
 .dual{display:flex;align-items:baseline;gap:10px;white-space:nowrap}.dual .dc{display:inline-block;font-size:12px;font-weight:500;line-height:1.2;letter-spacing:0;opacity:.9}
 .notes{font-size:15px;margin-top:6px}.np{margin:0 0 7px;line-height:1.5}.nh{font-weight:650;margin:10px 0 4px}.nh:first-child{margin-top:0}.nli{display:flex;gap:9px;margin:0 0 4px;line-height:1.45}.nli>span:first-child{color:var(--mut);flex:none;min-width:14px}.nsp{height:6px}
 .cadl{white-space:nowrap;font-size:12px;font-weight:500;color:var(--mut);margin-top:1px}.cadl.up{color:var(--up)}.cadl.dn{color:var(--dn)}
+.card.sm{background:var(--sim14,rgba(224,178,106,.14));border-color:var(--sim42,rgba(224,178,106,.42))}
+.cg.sm .cd{background:var(--sim10,rgba(224,178,106,.10));border-color:var(--sim30,rgba(224,178,106,.3))}
+.cg.sm .cd.up,.cg.sm .cd.dn{background:var(--sim28,rgba(224,178,106,.28))}.cg.sm .cd.up small{color:var(--up)}.cg.sm .cd.dn small{color:var(--dn)}
+.cg.sm .cd.hd{border-color:rgba(165,115,225,.9)}.cg.sm .cd.hd:not(.up):not(.dn){background:rgba(165,115,225,.17)}
+.seg .on.sim{background:var(--sim,#e0b26a);color:var(--simtx,#2a1d05)}
 .fade{animation:fi .22s ease-out}
 .sheet.open{animation:fo .2s ease-out}
 .sheet.open .pane{animation:su .28s cubic-bezier(.2,.8,.2,1)}
@@ -205,8 +210,9 @@ function rollAll(){
     e.querySelectorAll('[data-gh],[data-nw]').forEach(dg=>{const gh=dg.dataset.gh;dg.style.transition='max-width .45s ease,opacity .45s ease';dg.style.maxWidth=gh?'0':'1ch';dg.style.opacity=gh?'0':'1'});
   });
 }
-const inMode=e=>(e.mode||'pa')===(S.mode||'pa'),evc=()=>S.mode==='eval'?' ev':'';
-function modeSwitch(){const ev=S.mode==='eval';return `<div class="seg msw"><button data-mode="eval" class="${ev?'on e':''}">Eval</button><button data-mode="pa" class="${ev?'':'on p'}">PA</button></div>`}
+const MODES=['eval','pa','sim'],modeName=m=>({eval:'Eval',sim:'Sim'}[m]||'PA'),modeOn=m=>m=='eval'?'on e':m=='sim'?'on sim':'on p';
+const inMode=e=>(e.mode||'pa')===(S.mode||'pa'),evc=()=>S.mode==='eval'?' ev':S.mode==='sim'?' sm':'';
+function modeSwitch(){const m=S.mode||'pa';return `<div class="seg msw">${MODES.map(k=>`<button data-mode="${k}" class="${m==k?modeOn(k):''}">${modeName(k)}</button>`).join('')}</div>`}
 function renderNav(){$('#nav').innerHTML=[['home','Today'],['log','Journal'],['stats','Stats'],['pay','Payouts'],['tax','Tax']].map(([k,l])=>`<button data-tab="${k}" class="${tab==k?'on':''}">${l}</button>`).join('')}
 function fadeApp(){const a=$('#app');a.classList.remove('fade');void a.offsetWidth;a.classList.add('fade')}
 function render(){
@@ -222,7 +228,7 @@ function render(){
     <div style="height:14px"></div><div class="stack"><button class="btn blue" data-act="manual">Add Trade</button><button class="btn alt" data-act="exp">Add expense</button></div>
     ${E.length?`<div class="lbl" style="margin:18px 0 6px">Recent</div><div class="card">${E.slice(0,4).map(row).join('')}</div>`:''}`;
   }else if(tab=='log'){h=`${hdr('Journal',1)}<div class="sub">${E.length} logged day${E.length==1?'':'s'}. Tap a date to add or edit.</div>`+calHTML(E)+(()=>{const p=cal.getFullYear()+'-'+pad(cal.getMonth()+1),M=E.filter(e=>e.date.startsWith(p)).sort((a,b)=>b.date.localeCompare(a.date));return `<div class="lbl" style="margin:14px 0 6px">${cal.toLocaleDateString(undefined,{month:'long',year:'numeric'})} logs, newest first</div>`+(M.length?`<div class="card">${M.map(row).join('')}</div>`:'<div class="empty">No days logged this month.</div>')})();
-  }else if(tab=='stats'){h=`${hdr('Stats',1)}<div class="sub">${S.mode==='eval'?'Eval account':'PA account'} · all logged days</div>`+statsHTML(E)+reconHTML();
+  }else if(tab=='stats'){h=`${hdr('Stats',1)}<div class="sub">${modeName(S.mode)} account · all logged days</div>`+statsHTML(E)+reconHTML();
   }else if(tab=='settings')h=settingsHTML();
   else if(tab=='pay')h=payHTML();
   else h=taxHTML(EA,y);
@@ -242,7 +248,7 @@ function calHTML(E){
   let c='';for(let i=0;i<first;i++)c+='<div></div>';
   for(let d=1;d<=dim;d++){const k=p+'-'+pad(d),v=by[k];c+=`<div class="cd ${v===undefined?'':v>0?'up':v<0?'dn':''}${k==today()?' td':''}${HC(k)}" data-day="${k}">${d}${v===undefined?'':`<small>${cfmt(v)}</small>`}</div>`}
   const mt=Object.values(by).reduce((a,b)=>a+b,0);
-  return `<div class="card${evc()}"><div class="row"><button class="x" data-cal="-1">‹</button><b>${cal.toLocaleDateString(undefined,{month:'long',year:'numeric'})}</b><button class="x" data-cal="1">›</button></div><div class="row" style="margin:4px 0 10px"><span class="lbl">Month net</span><div style="text-align:right"><b class="${cls(mt)}">${odo('mnet',money(mt,1))}</b>${cadLine(mt,1,cls(mt))}</div></div><div class="cg${S.mode==='eval'?' ev':''}">${'SMTWTFS'.split('').map(x=>`<div class="lbl" style="text-align:center">${x}</div>`).join('')}${c}</div><div class="msg" style="margin:10px 0 0;font-size:12px">Purple outline: US market holiday (solid = closed, dashed = early close, dotted = banks only). Tap it for details.</div></div>`;
+  return `<div class="card${evc()}"><div class="row"><button class="x" data-cal="-1">‹</button><b>${cal.toLocaleDateString(undefined,{month:'long',year:'numeric'})}</b><button class="x" data-cal="1">›</button></div><div class="row" style="margin:4px 0 10px"><span class="lbl">Month net</span><div style="text-align:right"><b class="${cls(mt)}">${odo('mnet',money(mt,1))}</b>${cadLine(mt,1,cls(mt))}</div></div><div class="cg${evc()}">${'SMTWTFS'.split('').map(x=>`<div class="lbl" style="text-align:center">${x}</div>`).join('')}${c}</div><div class="msg" style="margin:10px 0 0;font-size:12px">Purple outline: US market holiday (solid = closed, dashed = early close, dotted = banks only). Tap it for details.</div></div>`;
 }
 function chartHTML(A){
   const vals=[0],dts=[A[0].date];let c=0;A.forEach(e=>{c+=n(e.net);vals.push(c);dts.push(e.date)});
@@ -307,7 +313,7 @@ function statsHTML(E){
 }
 function taxHTML(E,y){
   const yrs=[...new Set([...E.map(e=>e.date.slice(0,4)),...S.expenses.map(e=>e.date.slice(0,4)),...S.withdrawals.map(e=>e.date.slice(0,4))])].sort().reverse();if(!yrs.length)yrs.push(y);
-  let h=`${hdr('Tax summary',0)}<div class="sub">Payouts, expenses and tax set-aside by year</div><div class="card"><div class="row"><span>Subtract PA trading fees from payouts</span><button class="chip ${S.deductFees===false?'':'on'}" data-act="tgfees" style="margin:0">${S.deductFees===false?'Off':'On'}</button></div><div class="msg" style="margin:6px 0 0">Fees and commissions from Eval trades never count toward taxes or payouts.</div></div>`+yrs.map(yr=>{
+  let h=`${hdr('Tax summary',0)}<div class="sub">Payouts, expenses and tax set-aside by year</div><div class="card"><div class="row"><span>Subtract PA trading fees from payouts</span><button class="chip ${S.deductFees===false?'':'on'}" data-act="tgfees" style="margin:0">${S.deductFees===false?'Off':'On'}</button></div><div class="msg" style="margin:6px 0 0">Fees and commissions from Eval and Sim trades never count toward taxes or payouts.</div></div>`+yrs.map(yr=>{
     const L=E.filter(e=>e.date.startsWith(yr)),f=S.deductFees===false?0:sum(L.filter(e=>(e.mode||'pa')=='pa'),'fees'),P=S.withdrawals.filter(e=>e.date.startsWith(yr)),pu=sum(P,'usd'),pc=sum(P,'cad'),ex=sum(S.expenses.filter(e=>e.date.startsWith(yr)),'amount'),fx=pu?pc/pu:n(S.fx),nu=pu-f-ex,tx=Math.max(0,nu)*S.taxPct/100;
     const tw=(a,u,c,k,b)=>`<div class="row item" style="cursor:default"><span>${b?'<b>'+a+'</b>':a}</span><div style="text-align:right"><b class="${k||''}">${money(u,b)} USD</b><div class="sub" style="margin:0">${fx?money(c,b)+' CAD':''}</div></div></div>`;
     return `<div class="card"><div class="row"><b style="font-size:20px">${yr}</b><span class="lbl">${P.length} payout${P.length==1?'':'s'}</span></div><div class="sub" style="margin:2px 0 6px">Taxed when paid out</div>
@@ -316,7 +322,7 @@ function taxHTML(E,y){
   h+=`<div class="lbl" style="margin:18px 0 6px">Expenses</div><div class="card">${X.length?X.map(x=>`<div class="item row" data-xedit="${x.id}"><div><b>${esc(x.cat)}</b><div class="sub" style="margin:0">${fd(x.date,{month:'short',day:'numeric',year:'numeric'})}${x.note?' · '+esc(x.note):''}</div></div><b>${money(n(x.amount))}</b></div>`).join(''):'<div class="msg">Platform, data and prop firm fees, education and similar costs. Ask your accountant what is deductible.</div>'}</div><div class="stack"><button class="btn alt" data-act="exp">Add expense</button></div>`;
   if(!pdfYear||(pdfYear!=='all'&&!yrs.includes(pdfYear)))pdfYear=yrs[0]||'all';
   h+=`<div class="lbl" style="margin:18px 0 6px">PDF reports</div><div class="card"><label style="margin-top:0">Period</label><select id="pdf-year">${yrs.map(y=>`<option value="${y}"${pdfYear==y?' selected':''}>${y}</option>`).join('')}<option value="all"${pdfYear==='all'?' selected':''}>All years</option></select>
-  <div class="stack" style="margin:12px 0 0"><button class="btn blue" data-act="pdftax">Tax summary PDF</button><button class="btn alt" data-act="pdftrades">Trades PDF</button><button class="btn alt" data-act="pdfexp">Expenses PDF</button><button class="btn alt" data-act="pdfpay">Payouts PDF</button></div><div class="msg" style="margin:6px 0 0">Easy to read and share on any phone or computer. The Trades PDF includes both Eval and PA days.</div></div>
+  <div class="stack" style="margin:12px 0 0"><button class="btn blue" data-act="pdftax">Tax summary PDF</button><button class="btn alt" data-act="pdftrades">Trades PDF</button><button class="btn alt" data-act="pdfexp">Expenses PDF</button><button class="btn alt" data-act="pdfpay">Payouts PDF</button></div><div class="msg" style="margin:6px 0 0">Easy to read and share on any phone or computer. The Trades PDF includes your Eval, PA and Sim days.</div></div>
   <div class="lbl" style="margin:18px 0 6px">Backup and export</div><div class="stack"><button class="btn alt" data-act="backup">Export full backup (JSON)</button><button class="btn alt" data-act="restore">Restore from backup</button><button class="btn alt" data-act="csv">Export trades CSV</button><button class="btn alt" data-act="xcsv">Export expenses CSV</button><button class="btn alt" data-act="wcsv">Export payouts CSV</button><button class="btn alt" data-act="csvimp">Import from CSV</button></div><div class="msg">Your data lives only in this browser. Export a backup regularly, and check totals against your broker's official statements. To move data between devices, export the CSVs on one and tap Import from CSV on the other. Imports add to what is already there and skip duplicates. Restore from backup replaces everything instead.</div>`;
   return h;
 }
@@ -335,7 +341,7 @@ function lockScroll(){const b=document.body;if(lockY!==null||!b||!b.style)return
 function unlockScroll(){const b=document.body;if(lockY===null||!b||!b.style)return;const y=lockY;lockY=null;b.style.position='';b.style.top='';b.style.left='';b.style.right='';window.scrollTo(0,y)}
 function openSheet(){clearTimeout(closeT);const s=$('#sheet'),p=$('#pane');s.classList.remove('closing');p.style.transition='';p.style.transform='';s.style.transition='';s.style.background='';lockScroll();s.classList.add('open')}
 function closeSheet(){const s=$('#sheet');draft=null;xd=null;wd=null;status='';if(!s.classList.contains('open')||s.classList.contains('closing'))return;s.classList.add('closing');closeT=setTimeout(()=>{s.classList.remove('open','closing');unlockScroll();rollAll()},220)}
-const defAcc=m=>Math.max(1,parseInt((S.prefs||{})[m=='eval'?'accEval':'accPA'])||1);
+const defAcc=m=>Math.max(1,parseInt((S.prefs||{})[({eval:'accEval',sim:'accSim'})[m]||'accPA'])||1);
 function newDraft(o){return Object.assign({imgs:[],accounts:defAcc(S.mode||'pa'),mode:S.mode||'pa',id:null,date:today(),trades:[],micros:'',microsPer:'',ntr:1,basis:'net',net:'',notes:'',tags:[]},o)}
 function stag(){const p=$('#pane');p.classList.remove('stag');void p.offsetWidth;p.classList.add('stag');setTimeout(()=>p.classList.remove('stag'),700)}
 function paint(a){paint0();if(a)stag()}
@@ -344,7 +350,7 @@ function paint0(){
   $('#pane').innerHTML=`<div class="row"><b style="font-size:20px">Trade Info</b><button class="x" data-act="close">✕</button></div>
   ${status?`<div class="msg ${status.startsWith('!')?'err':''}">${esc(status.replace(/^!/,''))}</div>`:''}
   <label>Date</label><input type="date" id="f-date" value="${esc(d.date)}">
-  <label>Account</label><div class="seg"><button style="flex:1" data-emode="eval" class="${d.mode=='eval'?'on e':''}">Eval</button><button style="flex:1" data-emode="pa" class="${d.mode=='eval'?'':'on p'}">PA</button></div>
+  <label>Account</label><div class="seg">${MODES.map(k=>`<button style="flex:1" data-emode="${k}" class="${(d.mode||'pa')==k?modeOn(k):''}">${modeName(k)}</button>`).join('')}</div>
   <label style="text-align:center">Number of accounts</label><div class="row" style="justify-content:center;gap:8px"><button class="chip" data-acc="-1" style="margin:0;font-size:22px;padding:2px 18px;line-height:1.3">−</button><input id="f-acc" inputmode="numeric" value="${esc(d.accounts||1)}" style="width:76px;text-align:center"><button class="chip" data-acc="1" style="margin:0;font-size:22px;padding:2px 18px;line-height:1.3">+</button></div>
   <label>Trades for one account (symbol, micros, long or short)</label>
   ${d.trades.map((t,i)=>{const sh=String(t.side||'').toLowerCase().startsWith('s');return `<div class="tr"><input class="t-sym" data-t="${i}" data-k="symbol" placeholder="Symbol" autocapitalize="characters" autocorrect="off" autocomplete="off" spellcheck="false" style="text-transform:uppercase" value="${esc(String(t.symbol||'').toUpperCase())}"><input class="t-qty" data-t="${i}" data-k="qty" inputmode="decimal" placeholder="Micros" value="${esc(t.qty)}" style="text-align:center;padding-left:4px;padding-right:4px"><div class="seg t-side"><button data-side="${i}:Long" class="${sh?'':'on l'}">Long</button><button data-side="${i}:Short" class="${sh?'on s':''}">Short</button></div><div class="seg wl t-res"><button data-res="${i}:W" class="${t.res=='W'?'on w':''}" aria-label="Win">W</button><button data-res="${i}:L" class="${t.res=='L'?'on lo':''}" aria-label="Loss">L</button></div><button class="x t-x" data-del="${i}">✕</button></div>`}).join('')}
@@ -368,7 +374,7 @@ function view(){
   const tr=(o.trades||[]).filter(t=>t.symbol||n(t.qty)),pen='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg>';
   $('#pane').innerHTML=`<div class="row"><b style="font-size:19px">${fd(o.date,{weekday:'short',month:'short',day:'numeric',year:'numeric'})}</b><div class="row" style="gap:2px"><button class="editbtn" data-act="editday">${pen} Edit</button><button class="x" data-act="close">✕</button></div></div>
   <div style="text-align:center;padding:14px 0 8px"><div class="lbl">Net P&amp;L</div><div class="big ${cls(n(o.net))}">${money(n(o.net),1)}</div>${cadLine(n(o.net),1,cls(n(o.net)))}${n(o.accounts)>1?`<div class="${cls(perAcct(o,'net'))}" style="font-size:15px;font-weight:600;margin-top:2px">${money(perAcct(o,'net'),1)} per account <span style="color:var(--mut);font-weight:400">× ${n(o.accounts)} accounts</span></div>`:''}${wlLine(o)?`<div class="sub" style="margin:8px 0 0">${wlLine(o)}</div>`:''}</div>
-  <div class="card">${r('Account',(o.mode||'pa')=='eval'?'Eval':'PA')}${n(o.accounts)>1?r('Accounts traded',n(o.accounts)):''}${r('Gross P&amp;L',money(n(o.gross),1),cls(n(o.gross)))}${r('Fees &amp; commissions',money(n(o.fees)))}${r('Micros traded',n(o.micros)+(n(o.accounts)>1?' ('+(+(n(o.micros)/n(o.accounts)).toFixed(4))+' × '+n(o.accounts)+' accounts)':''))}</div>
+  <div class="card">${r('Account',modeName(o.mode||'pa'))}${n(o.accounts)>1?r('Accounts traded',n(o.accounts)):''}${r('Gross P&amp;L',money(n(o.gross),1),cls(n(o.gross)))}${r('Fees &amp; commissions',money(n(o.fees)))}${r('Micros traded',n(o.micros)+(n(o.accounts)>1?' ('+(+(n(o.micros)/n(o.accounts)).toFixed(4))+' × '+n(o.accounts)+' accounts)':''))}</div>
   ${n(o.accounts)>1?`<div class="card"><div class="lbl" style="margin-bottom:4px">Per account (one of ${n(o.accounts)})</div>${r('Net P&amp;L',money(perAcct(o,'net'),1),cls(perAcct(o,'net')))}${r('Gross P&amp;L',money(perAcct(o,'gross'),1),cls(perAcct(o,'gross')))}${r('Fees &amp; commissions',money(perAcct(o,'fees')))}${r('Micros traded',perAcct(o,'micros'))}</div>`:''}
   ${tr.length?`<div class="card"><div class="lbl" style="margin-bottom:4px">Trades${n(o.accounts)>1?' (per account)':''}</div>${tr.map(t=>`<div class="row item" style="cursor:default"><div><b>${esc(t.symbol||'Trade')}</b><div class="sub" style="margin:0">${esc(t.side||'Long')}${t.res?' · '+(t.res=='W'?'Win':'Loss'):''}${n(t.qty)?' · '+n(t.qty)+' micro'+(n(t.qty)==1?'':'s'):''}${t.entry?' · '+esc(t.entry)+' → '+esc(t.exit):''}</div></div>${(t.entry||n(t.pnl))?`<b class="${cls(n(t.pnl))}">${money(n(t.pnl),1)}</b>`:''}</div>`).join('')}</div>`:''}
   ${(o.tags||[]).length?`<div class="card"><div class="lbl" style="margin-bottom:8px">Tags</div>${o.tags.map(t=>`<span class="chip on" style="pointer-events:none">${esc(t)}</span>`).join('')}</div>`:''}
@@ -505,7 +511,7 @@ function summary(o){
   const up=o.net>0,dn=o.net<0,msg=up?'Good trading!':dn?'It is what it is.':'Flat day.',sub=up?'Another green day in the books.':dn?'Log it, learn from it, move on.':'No gain, no loss.';
   const r=(a,v,c)=>`<div class="row item" style="cursor:default"><span>${a}</span><b class="${c||''}">${v}</b></div>`;
   $('#pane').innerHTML=`<div style="text-align:center;padding:12px 0 8px"><div style="font-size:28px;font-weight:650;letter-spacing:-.02em" class="${cls(o.net)}">${msg}</div><div class="sub" style="margin:4px 0 0">${sub}</div></div>
-  <div class="card" style="margin-top:12px">${r('Date',fd(o.date,{weekday:'short',month:'short',day:'numeric',year:'numeric'}))}${r('Account',(o.mode||'pa')=='eval'?'Eval':'PA')}${r('Net P&L',money(o.net,1),cls(o.net))}${fxr()?r('Net in CAD',cm(o.net*fxr(),1),cls(o.net)):''}${o.accounts>1?r('Accounts traded',o.accounts)+r('Net per account',money(o.net/o.accounts,1),cls(o.net)):''}${r('Micros traded',o.micros+(o.accounts>1?' ('+(+(o.micros/o.accounts).toFixed(4))+' × '+o.accounts+' accounts)':''))}${r('Fees & commissions',money(o.fees))}${r('Gross P&L',money(o.gross,1),cls(o.gross))}${(o.tags||[]).length?r('Tags',esc(o.tags.join(', '))):''}</div>${o.notes?`<div class="card"><div class="lbl" style="margin-bottom:6px">Notes</div><div class="notes">${notesHTML(o.notes)}</div></div>`:''}${wlLine(o)?`<div class="msg" style="text-align:center;margin:10px 0 12px">${wlLine(o)}</div>`:''}<button class="btn" data-act="done">Done</button>`;stag();
+  <div class="card" style="margin-top:12px">${r('Date',fd(o.date,{weekday:'short',month:'short',day:'numeric',year:'numeric'}))}${r('Account',modeName(o.mode||'pa'))}${r('Net P&L',money(o.net,1),cls(o.net))}${fxr()?r('Net in CAD',cm(o.net*fxr(),1),cls(o.net)):''}${o.accounts>1?r('Accounts traded',o.accounts)+r('Net per account',money(o.net/o.accounts,1),cls(o.net)):''}${r('Micros traded',o.micros+(o.accounts>1?' ('+(+(o.micros/o.accounts).toFixed(4))+' × '+o.accounts+' accounts)':''))}${r('Fees & commissions',money(o.fees))}${r('Gross P&L',money(o.gross,1),cls(o.gross))}${(o.tags||[]).length?r('Tags',esc(o.tags.join(', '))):''}</div>${o.notes?`<div class="card"><div class="lbl" style="margin-bottom:6px">Notes</div><div class="notes">${notesHTML(o.notes)}</div></div>`:''}${wlLine(o)?`<div class="msg" style="text-align:center;margin:10px 0 12px">${wlLine(o)}</div>`:''}<button class="btn" data-act="done">Done</button>`;stag();
 }
 function shrink(file){return new Promise((ok,no)=>{const u=URL.createObjectURL(file),i=new Image();i.onload=()=>{const k=Math.min(1,1800/Math.max(i.width,i.height)),c=document.createElement('canvas');c.width=i.width*k;c.height=i.height*k;c.getContext('2d').drawImage(i,0,0,c.width,c.height);URL.revokeObjectURL(u);ok(c.toDataURL('image/jpeg',.85).split(',')[1])};i.onerror=()=>no({message:'Could not open that image.'});i.src=u})}
 async function scan(files){
@@ -670,7 +676,7 @@ function applyPrefs(){
   set('--up',p.up);set('--upbg',p.up?rgbaOf(p.up,.3):'');set('--dn',p.dn);set('--dnbg',p.dn?rgbaOf(p.dn,.3):'');
   set('--blu',p.btn);set('--acc',p.btn);set('--btntx',p.btn?onColor(p.btn):'');
   set('--ev',p.ev);set('--evtx',p.ev?onColor(p.ev):'');
-  [['10',.10],['14',.14],['28',.28],['30',.30],['42',.42]].forEach(([k,a])=>set('--ev'+k,p.ev?rgbaOf(p.ev,a):''));
+  [['10',.10],['14',.14],['28',.28],['30',.30],['42',.42]].forEach(([k,a])=>{set('--ev'+k,p.ev?rgbaOf(p.ev,a):'');set('--sim'+k,p.sim?rgbaOf(p.sim,a):'')});set('--sim',p.sim);set('--simtx',p.sim?onColor(p.sim):'');
   if(d.theme==='dark'||d.theme==='light')document.documentElement.setAttribute('data-theme',d.theme);else document.documentElement.removeAttribute('data-theme');
   set('--ts',d.ts&&d.ts!=100?String(d.ts/100):'');setTimeout(syncThemeColor,0);set('--nd',curNd()+'px');
   if(document.documentElement.classList)document.documentElement.classList.toggle('noanim',noAnim());
@@ -679,8 +685,8 @@ function avatarHTML(){const p=S.prefs||{},ini=((p.name||(sess&&sess.email)||'?')
 function topRight(withMode){return `<div class="trr">${withMode?modeSwitch():''}<button class="avatar" data-act="settings" aria-label="Settings">${avatarHTML()}</button></div>`}
 const hdr=(t,m)=>`<div class="row hdr"><h1>${t}</h1>${topRight(m)}</div>`;
 function avatarFrom(file){return new Promise((ok,no)=>{const u=URL.createObjectURL(file),i=new Image();i.onload=()=>{const z=192,c=document.createElement('canvas');c.width=c.height=z;const q=Math.min(i.width,i.height);c.getContext('2d').drawImage(i,(i.width-q)/2,(i.height-q)/2,q,q,0,0,z,z);URL.revokeObjectURL(u);ok(c.toDataURL('image/jpeg',.85))};i.onerror=()=>no(new Error('image'));i.src=u})}
-const COLS={up:['#4caf7d','#2fb5a0','#5aa0e0','#d6b04a','#e8e8e8'],dn:['#e5534b','#e8806c','#e59a4a','#e06a98','#9aa0a6'],btn:['#5a7ea6','#d97757','#4caf7d','#8a7fd1','#c75b7a','#4b5563'],ev:['#8fb4de','#6fc3e8','#6dd0b3','#e0c06a','#e88fb0','#a0a8b8']};
-const DEF={up:'#7fc08f',dn:'#e8806c',btn:'#5a7ea6',ev:'#8fb4de'};
+const COLS={up:['#4caf7d','#2fb5a0','#5aa0e0','#d6b04a','#e8e8e8'],dn:['#e5534b','#e8806c','#e59a4a','#e06a98','#9aa0a6'],btn:['#5a7ea6','#d97757','#4caf7d','#8a7fd1','#c75b7a','#4b5563'],ev:['#8fb4de','#6fc3e8','#6dd0b3','#e0c06a','#e88fb0','#a0a8b8'],sim:['#e0b26a','#e59a4a','#9fd36b','#6dd0b3','#d98fe0','#a0a8b8']};
+const DEF={up:'#7fc08f',dn:'#e8806c',btn:'#5a7ea6',ev:'#8fb4de',sim:'#e0b26a'};
 function settingsHTML(){
   const p=S.prefs||{},d=S.dev||{},ts=d.ts||100,th=d.theme||'auto',sm=p.startMode||'last',an=d.anim===false?'off':'on';
   const sg=(key,val,cur,label,dev)=>`<button style="flex:1;padding:10px 6px" class="${String(cur)==String(val)?'on p':''}" data-pref="${key}" data-val="${val}"${dev?' data-dev="1"':''}>${label}</button>`;
@@ -694,15 +700,15 @@ function settingsHTML(){
   <div class="card"><div class="lbl" style="margin-bottom:2px">Look and feel</div>
     ${lb('Theme · this device')}<div class="seg">${sg('theme','auto',th,'Auto',1)}${sg('theme','dark',th,'Dark',1)}${sg('theme','light',th,'Light',1)}</div>
     ${lb('Text size · this device')}<div class="seg">${sg('ts',90,ts,'Small',1)}${sg('ts',100,ts,'Default',1)}${sg('ts',112,ts,'Large',1)}${sg('ts',125,ts,'XL',1)}</div>
-    ${lb('Profit colour')}${sw('up',DEF.up)}${lb('Loss colour')}${sw('dn',DEF.dn)}${lb('Button colour')}${sw('btn',DEF.btn)}${lb('Eval mode colour')}${sw('ev',DEF.ev)}
+    ${lb('Profit colour')}${sw('up',DEF.up)}${lb('Loss colour')}${sw('dn',DEF.dn)}${lb('Button colour')}${sw('btn',DEF.btn)}${lb('Eval mode colour')}${sw('ev',DEF.ev)}${lb('Sim mode colour')}${sw('sim',DEF.sim)}
     <div class="row" style="margin-top:16px;gap:10px"><b class="up" style="font-size:18px">+$1,234.56</b><b class="dn" style="font-size:18px">−$567.89</b></div>
-    <div class="row" style="margin-top:10px;gap:10px"><button class="btn blue" style="width:auto;padding:9px 16px;flex:none" data-act="noop">Button</button><div class="seg msw" style="flex:none"><button class="on e">Eval</button><button class="on p" style="background:var(--tx);color:var(--bg)">PA</button></div></div>
+    <div class="row" style="margin-top:10px;gap:10px"><button class="btn blue" style="width:auto;padding:9px 16px;flex:none" data-act="noop">Button</button><div class="seg msw" style="flex:none"><button class="on e">Eval</button><button class="on p" style="background:var(--tx);color:var(--bg)">PA</button><button class="on sim">Sim</button></div></div>
     <button class="btn alt" style="margin-top:14px;padding:10px" data-act="resetlook">Reset colours and size</button></div>
   <div class="card"><div class="lbl" style="margin-bottom:2px">Preferences</div>
-    ${lb('Open the app in')}<div class="seg">${sg('startMode','last',sm,'Last used')}${sg('startMode','pa',sm,'PA')}${sg('startMode','eval',sm,'Eval')}</div>
+    ${lb('Open the app in')}<div class="seg">${sg('startMode','last',sm,'Last used')}${sg('startMode','pa',sm,'PA')}${sg('startMode','eval',sm,'Eval')}${sg('startMode','sim',sm,'Sim')}</div>
 
     ${lb('Animations · this device')}<div class="seg">${sg('anim','on',an,'On',1)}${sg('anim','off',an,'Off',1)}</div>
-    ${lb('PA accounts I trade')}<input id="p-accpa" inputmode="numeric" value="${defAcc('pa')}">${lb('Eval accounts I trade')}<input id="p-acceval" inputmode="numeric" value="${defAcc('eval')}"><div class="msg" style="margin:4px 0 0">New entries start with these counts. Each entry multiplies its profit, fees and micros by its number of accounts.</div>${lb('Fee per micro, round trip ($)')}<input id="p-rate" inputmode="decimal" value="${esc(S.rate)}">
+    ${lb('PA accounts I trade')}<input id="p-accpa" inputmode="numeric" value="${defAcc('pa')}">${lb('Eval accounts I trade')}<input id="p-acceval" inputmode="numeric" value="${defAcc('eval')}">${lb('Sim accounts I trade')}<input id="p-accsim" inputmode="numeric" value="${defAcc('sim')}"><div class="msg" style="margin:4px 0 0">New entries start with these counts. Each entry multiplies its profit, fees and micros by its number of accounts.</div>${lb('Fee per micro, round trip ($)')}<input id="p-rate" inputmode="decimal" value="${esc(S.rate)}">
     ${lb('Tax set-aside rate (%)')}<input id="p-tax" inputmode="decimal" value="${esc(S.taxPct)}"></div>
   <div class="card"><div class="lbl" style="margin-bottom:6px">Account</div>${sess?`<div class="row"><span>Signed in as</span><b style="font-weight:500;font-size:14px">${esc(sess.email||'')}</b></div><div class="msg syncs">${esc(syncLabel())}</div>
     <div class="stack" style="margin:8px 0 0"><button class="btn alt" data-act="syncnow">Sync now</button><button class="btn alt" data-act="chpw">Change password</button><button class="btn alt" data-act="signout" style="color:var(--dn)">Sign out</button></div>`:'<div class="msg">Preview mode: sign-in and syncing are off here.</div>'}</div>
@@ -867,7 +873,7 @@ function pdfTaxDoc(per){
     if(Object.keys(cats).length){pdfTable(d,[{h:'Category',w:290,v:r=>r[0]},{h:'USD',w:120,a:'r',k:'u',v:r=>pM(r[1])},{h:'CAD',w:122,a:'r',k:'c',v:r=>pM(r[1]*fx)}],Object.entries(cats),{total:{Category:null,u:pM(ex),c:pM(ex*fx)}})}
     else{d.text(d.M+4,d.y-10,'No expenses recorded for '+yr+'.',9,false,pGrey);d.y-=22}
     d.ensure(70);d.hline(d.M,d.W-d.M,d.y);d.y-=12;
-    ['Only PA account trading fees are subtracted from payouts. Eval trades never count.'+(S.deductFees===false?' (Fee subtraction is switched off.)':''),
+    ['Only PA account trading fees are subtracted from payouts. Eval and Sim trades never count.'+(S.deductFees===false?' (Fee subtraction is switched off.)':''),
      'CAD amounts use the exchange rate saved with each payout; expenses and fees use the average payout rate'+(pu?'':' (latest saved rate)')+'.',
      'The set-aside is an estimate at your chosen rate, not a tax calculation. Totals come from your own records,','so check them against your prop firm statements and confirm the treatment with your accountant.'].forEach(t=>{d.text(d.M,d.y-8,t,8.5,false,pGrey);d.y-=11});
     first=false;
@@ -877,12 +883,12 @@ function pdfTaxDoc(per){
 function pdfTradesDoc(per){
   const d=pdfDoc(),E=S.entries.filter(e=>inPer(e.date,per)).sort((a,b)=>a.date.localeCompare(b.date)||String(a.id).localeCompare(String(b.id)));
   pdfHead(d,'Trades report',perLabel(per)+'  |  '+pdfWho());
-  ['pa','eval'].forEach(m=>{const X=E.filter(e=>(e.mode||'pa')==m);if(!X.length)return;
-    kvRow(d,(m=='pa'?'PA':'Eval')+' - '+X.length+' entr'+(X.length==1?'y':'ies')+', '+new Set(X.map(e=>e.date)).size+' days','Gross '+pM(sum(X,'gross'),1),'Net '+pM(sum(X,'net'),1),{b:1,c:pCol(sum(X,'net'))})});
+  ['pa','eval','sim'].forEach(m=>{const X=E.filter(e=>(e.mode||'pa')==m);if(!X.length)return;
+    kvRow(d,modeName(m)+' - '+X.length+' entr'+(X.length==1?'y':'ies')+', '+new Set(X.map(e=>e.date)).size+' days','Gross '+pM(sum(X,'gross'),1),'Net '+pM(sum(X,'net'),1),{b:1,c:pCol(sum(X,'net'))})});
   d.y-=6;
   if(!E.length){d.text(d.M+4,d.y-10,'No trades recorded for this period.',9.5,false,pGrey);return d.build('Futures Ledger  |  Trades  |  '+perLabel(per))}
   const sub=e=>(e.trades||[]).filter(t=>t.symbol||n(t.qty)).map(t=>(t.symbol||'Trade')+'  '+(t.side||'Long')+(t.res?' ['+t.res+']':'')+'  '+(n(t.qty)?n(t.qty)+' micro'+(n(t.qty)==1?'':'s'):'')+(t.entry?'   '+t.entry+' -> '+t.exit:'')+(t.pnl!==''&&t.pnl!=null&&(n(t.pnl)||t.entry)?'   P&L '+pM(n(t.pnl),1):'')+((e.accounts>1)?'   (per account)':''));
-  pdfTable(d,[{h:'Date',w:60,v:e=>e.date},{h:'Type',w:34,v:e=>(e.mode||'pa')=='eval'?'Eval':'PA'},{h:'Accts',w:34,a:'r',v:e=>String(e.accounts||1)},{h:'Micros',w:42,a:'r',v:e=>String(+n(e.micros).toFixed(2))},{h:'Fees',w:56,a:'r',k:'f',v:e=>pM(n(e.fees))},{h:'Gross',w:66,a:'r',k:'g',v:e=>pM(n(e.gross),1),c:e=>pCol(n(e.gross))},{h:'Net',w:66,a:'r',k:'n',v:e=>pM(n(e.net),1),c:e=>pCol(n(e.net))},{h:'Tags / notes',w:174,v:e=>[(e.tags||[]).join(', '),e.notes||''].filter(Boolean).join(' - ')}],E,{sub,total:{Date:null,f:pM(sum(E,'fees')),g:pM(sum(E,'gross'),1),n:pM(sum(E,'net'),1)},totalColor:{g:sum(E,'gross'),n:sum(E,'net')}});
+  pdfTable(d,[{h:'Date',w:60,v:e=>e.date},{h:'Type',w:34,v:e=>modeName(e.mode||'pa')},{h:'Accts',w:34,a:'r',v:e=>String(e.accounts||1)},{h:'Micros',w:42,a:'r',v:e=>String(+n(e.micros).toFixed(2))},{h:'Fees',w:56,a:'r',k:'f',v:e=>pM(n(e.fees))},{h:'Gross',w:66,a:'r',k:'g',v:e=>pM(n(e.gross),1),c:e=>pCol(n(e.gross))},{h:'Net',w:66,a:'r',k:'n',v:e=>pM(n(e.net),1),c:e=>pCol(n(e.net))},{h:'Tags / notes',w:174,v:e=>[(e.tags||[]).join(', '),e.notes||''].filter(Boolean).join(' - ')}],E,{sub,total:{Date:null,f:pM(sum(E,'fees')),g:pM(sum(E,'gross'),1),n:pM(sum(E,'net'),1)},totalColor:{g:sum(E,'gross'),n:sum(E,'net')}});
   return d.build('Futures Ledger  |  Trades  |  '+perLabel(per));
 }
 function pdfExpDoc(per){
@@ -904,7 +910,7 @@ function pdfPayDoc(per){
   return d.build('Futures Ledger  |  Payouts  |  '+perLabel(per));
 }
 function pdfWeekDoc(ws,E,IM){
-  const d=pdfDoc(),mode=S.mode=='eval'?'Eval':'PA',we=new Date(ws.getFullYear(),ws.getMonth(),ws.getDate()+6),f2=(x,o)=>x.toLocaleDateString('en-US',o);
+  const d=pdfDoc(),mode=modeName(S.mode),we=new Date(ws.getFullYear(),ws.getMonth(),ws.getDate()+6),f2=(x,o)=>x.toLocaleDateString('en-US',o);
   const range=f2(ws,{month:'short',day:'numeric'})+' - '+f2(we,{month:'short',day:'numeric',year:'numeric'});
   pdfHead(d,'Weekly journal',range+'  |  '+mode+' account  |  '+pdfWho());
   const net=sum(E,'net'),fees=sum(E,'fees'),mic=sum(E,'micros');let tw=0,tl=0,tt=0;E.forEach(e=>{const c=wlOf(e);tw+=c.w;tl+=c.l;tt+=c.t});
@@ -1002,7 +1008,7 @@ function importCSV(text){
   if(H.includes('Symbol')&&H.includes('Day net')){
     const sig=e=>[e.date,e.mode||'pa',e.accounts||1,n(e.net),n(e.micros),n(e.fees),e.notes||'',(e.trades||[]).map(t=>[t.symbol||'',t.side||'',n(t.qty)].join(':')).join(',')].join('|'),seen=new Set(S.entries.map(sig)),out=[];let cur=null;
     body.forEach(row=>{const d=normDate(g(row,'Date'));if(!d){res.bad++;return}
-      if(g(row,'Day net')!==''){cur={id:uid(),date:d,accounts:Math.max(1,parseInt(g(row,'Accounts'))||1),mode:(g(row,'Mode')||'pa').toLowerCase()=='eval'?'eval':'pa',trades:[],gross:n(g(row,'Day gross')),micros:n(g(row,'Micros')),fees:n(g(row,'Day fees')),net:n(g(row,'Day net')),tags:g(row,'Tags').split(';').map(x=>x.trim()).filter(Boolean),notes:g(row,'Notes')};if(cur.accounts>1)cur.amt=+(cur.net/cur.accounts).toFixed(2);out.push(cur)}
+      if(g(row,'Day net')!==''){cur={id:uid(),date:d,accounts:Math.max(1,parseInt(g(row,'Accounts'))||1),mode:({eval:'eval',sim:'sim'})[(g(row,'Mode')||'pa').toLowerCase()]||'pa',trades:[],gross:n(g(row,'Day gross')),micros:n(g(row,'Micros')),fees:n(g(row,'Day fees')),net:n(g(row,'Day net')),tags:g(row,'Tags').split(';').map(x=>x.trim()).filter(Boolean),notes:g(row,'Notes')};if(cur.accounts>1)cur.amt=+(cur.net/cur.accounts).toFixed(2);out.push(cur)}
       if(!cur)return;const sym=g(row,'Symbol'),qty=g(row,'Trade micros'),pl=g(row,'Trade P&L');
       if(sym||qty!=='')cur.trades.push({symbol:sym,side:g(row,'Side')||'Long',res:g(row,'Result'),qty:qty===''?'':n(qty),entry:g(row,'Entry'),exit:g(row,'Exit'),pnl:pl===''?'':n(pl),entryTime:g(row,'Entry time'),exitTime:g(row,'Exit time')})});
     out.forEach(e=>{e.ntr=e.trades.length||1;const k=sig(e);if(seen.has(k))res.dup++;else{seen.add(k);S.entries.push(e);res.days++}});
@@ -1043,7 +1049,7 @@ document.addEventListener('click',e=>{
   if(D.rmimg!==undefined){pull();draft.imgs.splice(+D.rmimg,1);paint();return}
   if(D.viewimg){openViewer(D.viewimg);return}
   if(D.acc){const f=$('#f-acc');f.value=Math.max(1,Math.min(99,(parseInt(f.value)||1)+ +D.acc));if(draft)draft.accounts=+f.value;calc();return}
-  if(D.emode){const pm=draft.mode,f=$('#f-acc');if(f&&(parseInt(f.value)||1)===defAcc(pm)){f.value=defAcc(D.emode);draft.accounts=+f.value}draft.mode=D.emode;calc();[...g.parentNode.children].forEach(b=>b.className=b===g?(D.emode=='eval'?'on e':'on p'):'');return}
+  if(D.emode){const pm=draft.mode,f=$('#f-acc');if(f&&(parseInt(f.value)||1)===defAcc(pm)){f.value=defAcc(D.emode);draft.accounts=+f.value}draft.mode=D.emode;calc();[...g.parentNode.children].forEach(b=>b.className=b===g?modeOn(D.emode):'');return}
   if(D.basis){draft.basis=D.basis;[...g.parentNode.children].forEach(b=>b.className=b===g?'on l':'');$('#l-amt').textContent=D.basis=='gross'?'Gross P&L (before commissions)':'Net P&L (as shown on your platform, after commissions)';calc();return}
   if(D.wk){if(g.disabled)return;wkStart.setDate(wkStart.getDate()+7*+D.wk);render();return}
   if(D.res){const [i,v]=D.res.split(':'),t=draft.trades[+i];t.res=t.res===v?'':v;const b=g.parentNode.children;b[0].className=t.res=='W'?'on w':'';b[1].className=t.res=='L'?'on lo':'';return}
@@ -1063,7 +1069,7 @@ document.addEventListener('click',e=>{
   else if(a=='vclose')closeViewer(false);
   else if(a=='avrm'){S.prefs=S.prefs||{};delete S.prefs.avatar;save();render()}
   else if(a=='chpw')changePw();
-  else if(a=='resetlook'){['up','dn','btn','ev'].forEach(k=>{if(S.prefs)delete S.prefs[k]});if(S.dev){delete S.dev.ts;delete S.dev.theme;delete S.dev.nd}applyPrefs();save();const y=getSc();render();setSc(y)}
+  else if(a=='resetlook'){['up','dn','btn','ev','sim'].forEach(k=>{if(S.prefs)delete S.prefs[k]});if(S.dev){delete S.dev.ts;delete S.dev.theme;delete S.dev.nd}applyPrefs();save();const y=getSc();render();setSc(y)}
   else if(a=='noop'){}
   else if(a=='editday'){status='';paint(1)}
   else if(a=='addsame'){draft=newDraft({date:D.date});status='';paint(1)}
@@ -1093,7 +1099,7 @@ document.addEventListener('click',e=>{
   else if(a=='save'){pull();const kept=draft.trades.filter(t=>t.symbol||n(t.qty)),m1=+kept.reduce((t,x)=>t+n(x.qty),0).toFixed(4),N=Math.max(1,parseInt(draft.accounts)||1),amt=n(draft.net),fe1=+(m1*S.rate).toFixed(2),gb=draft.basis=='gross',n1=gb?amt-fe1:amt,g1=gb?amt:amt+fe1,mc=+(m1*N).toFixed(4),fe=+(fe1*N).toFixed(2),nt=+(n1*N).toFixed(2),gr=+(g1*N).toFixed(2);
     const o={...draft,amt,accounts:N,micros:mc,ntr:kept.length||1,fees:fe,net:nt,gross:gr,basis:draft.basis||'net',trades:kept.map(t=>({...t,res:t.res=='W'||t.res=='L'?t.res:'',symbol:String(t.symbol||'').trim().toUpperCase(),side:String(t.side||'').toLowerCase().startsWith('s')?'Short':'Long',qty:n(t.qty),pnl:n(t.pnl)}))};delete o._c;delete o._n;
     if(o.id)S.entries=S.entries.map(v=>v.id==o.id?o:v);else{o.id=Date.now().toString(36);S.entries.push(o)}
-    save();render();summary(o);cleanImgs();if((o.mode||'pa')!==S.mode)toast('Saved as '+(o.mode=='eval'?'Eval':'PA')+'. Switch modes to see it.')}
+    save();render();summary(o);cleanImgs();if((o.mode||'pa')!==S.mode)toast('Saved as '+modeName(o.mode)+'. Switch modes to see it.')}
 });
 document.addEventListener('input',e=>{
   const el=e.target;
@@ -1102,7 +1108,7 @@ document.addEventListener('input',e=>{
   if(['w-amt','w-fx'].includes(el.id))wcalc();
   if(el.id=='tx-pct'){S.taxPct=n(el.value);save()}
   if(el.id=='p-name'){S.prefs=S.prefs||{};if(el.value.trim())S.prefs.name=el.value.trim();else delete S.prefs.name;save()}
-  if(el.id=='p-accpa'||el.id=='p-acceval'){const v=Math.min(99,parseInt(el.value)||0);if(v>0){S.prefs=S.prefs||{};S.prefs[el.id=='p-accpa'?'accPA':'accEval']=v;save()}}
+  if(el.id=='p-accpa'||el.id=='p-acceval'||el.id=='p-accsim'){const v=Math.min(99,parseInt(el.value)||0);if(v>0){S.prefs=S.prefs||{};S.prefs[({'p-accpa':'accPA','p-acceval':'accEval','p-accsim':'accSim'})[el.id]]=v;save()}}
   if(el.id=='p-rate'){const v=n(el.value);if(v>0){S.rate=v;save()}}
   if(el.id=='p-tax'){S.taxPct=n(el.value);save()}
   if(el.dataset.prefc){S.prefs=S.prefs||{};S.prefs[el.dataset.prefc]=el.value;applyPrefs();save();return}
@@ -1121,7 +1127,7 @@ $('#csvin').addEventListener('change',async e=>{const fs=[...e.target.files];e.t
   toast((a.length?'Imported '+a.join(', ')+'.':'Nothing new to import.')+(T.dup?' Skipped '+T.dup+' already here.':'')+(T.bad?' '+T.bad+' row'+(T.bad==1?'':'s')+' had no valid date.':'')+(unk?' '+unk+' file'+(unk==1?'':'s')+" didn't look like a CSV exported from this app.":''))});
 $('#bk').addEventListener('change',e=>{const f=e.target.files[0];e.target.value='';if(!f)return;const r=new FileReader();r.onload=()=>{try{const o=JSON.parse(r.result);if(!Array.isArray(o.entries))throw 0;if(confirm('Replace everything in the app with this backup ('+o.entries.length+' days)?')){S=Object.assign({entries:[],expenses:[],recon:{},rate:1.22,withdrawals:[],taxPct:25,fx:null,deductFees:true,mode:'pa',prefs:{},dev:{}},o);save();render()}}catch(x){alert('That file is not a valid backup.')}};r.readAsText(f)});
 $('#sheet').addEventListener('click',e=>{if(e.target.id=='sheet')closeSheet()});
-{const sm=(S.prefs||{}).startMode;if(sm==='pa'||sm==='eval')S.mode=sm}
+{const sm=(S.prefs||{}).startMode;if(sm==='pa'||sm==='eval'||sm==='sim')S.mode=sm}
 applyPrefs();
 render();
 initSync();
