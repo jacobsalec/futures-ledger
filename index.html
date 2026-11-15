@@ -270,7 +270,7 @@ function chartHTML(A){
   for(let j=0;j<cnt;j++){const i=Math.round(j*(vals.length-1)/((cnt-1)||1));xl+=`<text x="${X(i).toFixed(1)}" y="${H-6}" text-anchor="${j==0?'start':j==cnt-1?'end':'middle'}" font-size="10" fill="var(--mut)">${fd(dts[i],{month:'short',day:'numeric'})}</text>`}
   return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="margin-top:10px"><defs><linearGradient id="eqg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6f94bf" stop-opacity=".55"/><stop offset="1" stop-color="#6f94bf" stop-opacity="0"/></linearGradient></defs>${grid}<path d="${area}" fill="url(#eqg)" class="eqarea"/><path d="${d}" pathLength="1" fill="none" stroke="#7aa0cc" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" class="eqline"/><circle cx="${last[0].toFixed(1)}" cy="${last[1].toFixed(1)}" r="7" fill="#7aa0cc" opacity=".25"/><circle cx="${last[0].toFixed(1)}" cy="${last[1].toFixed(1)}" r="3.6" fill="#7aa0cc" stroke="var(--card)" stroke-width="1.5"/>${xl}</svg><div class="row" style="margin-top:6px"><span class="lbl">Total</span><b class="${cls(c)}">${money(c,1)}</b></div>`;
 }
-let wkStart=null,symP='all',goalEdit=false,evUndo=null,incSel=new Set(),incCal=new Date();
+let wkStart=null,symP='all',goalEdit=false,evUndo=null,incSel=new Set(),incCal=new Date(),incAcct=null;
 const ymd=x=>x.getFullYear()+'-'+pad(x.getMonth()+1)+'-'+pad(x.getDate());
 function monOf(d){const x=new Date(d);x.setHours(12,0,0,0);x.setDate(x.getDate()-((x.getDay()+6)%7));return x}
 function barHTML(E,X){
@@ -303,44 +303,76 @@ function barHTML(E,X){
 function gOf(){const G=S.goals||(S.goals={});if(S.goal&&!G.pa){G.pa={t:n(S.goal)}}return G[S.mode]||null}
 function goalHTML(E){return `<div id="goalbox">${goalInner(E)}</div>`}
 function goalSwap(){const b=$('#goalbox');if(!b){render();return}b.innerHTML=goalInner(S.entries.filter(inMode));b.classList.remove('fade');void b.offsetWidth;b.classList.add('fade');const i=$('#g-in');if(i)i.focus()}
+const pa1=L=>L.reduce((a,e)=>a+n(e.net)/(n(e.accounts)||1),0);
 function evPred(o){const sel=o&&o.sel,sf=o&&o.sf,st=o&&o.s;return sel?(e=>sel.includes(e.date)||e.date>sf):(e=>!st||e.date>=st)}
-function evDays(){const G=S.goals||{},c=G.eval||{};return S.entries.filter(e=>inMode(e)&&evPred({s:c.start,sel:c.sel,sf:c.selFrom})(e)).map(e=>e.date)}
+function accCnt(a,h){const f=evPred(h||{s:a.start,sel:a.sel,sf:a.selFrom});return e=>(!a.from||e.date>=a.from)&&f(e)}
+const accOf=id=>(S.evAccts||[]).find(a=>a.id==id);
+function ensureAcc(){
+  if(S.evAccts)return S.evAccts;
+  const g=S.goals&&S.goals.eval;if(!g)return null;
+  const N=Math.max(1,Math.min(20,parseInt((S.prefs||{}).accEval)||1));S.evAccts=[];
+  for(let i=1;i<=N;i++)S.evAccts.push(Object.assign(JSON.parse(JSON.stringify({t:g.t,start:g.start,sel:g.sel,selFrom:g.selFrom,hist:g.hist||[]})),{id:Date.now().toString(36)+i,name:'Eval '+i}));
+  delete S.goals.eval;save();return S.evAccts}
+function evDays(a){return S.entries.filter(e=>inMode(e)&&accCnt(a)(e)).map(e=>e.date)}
 function paintInc(){
-  const E=S.entries.filter(e=>inMode(e)),by={};E.forEach(e=>{by[e.date]=(by[e.date]||0)+n(e.net)});
+  const x=accOf(incAcct);if(!x){closeSheet();return}
+  const E=S.entries.filter(e=>inMode(e)&&(!x.from||e.date>=x.from)),by={};E.forEach(e=>{by[e.date]=(by[e.date]||0)+n(e.net)/(n(e.accounts)||1)});
   const y=incCal.getFullYear(),m=incCal.getMonth(),first=new Date(y,m,1).getDay(),dim=new Date(y,m+1,0).getDate(),p=y+'-'+pad(m+1);let c='';for(let i=0;i<first;i++)c+='<div></div>';
   for(let d=1;d<=dim;d++){const k=p+'-'+pad(d),v=by[k];c+=v===undefined?`<div class="cd off">${d}</div>`:`<div class="cd ${incSel.has(k)?'pick':v>0?'up':v<0?'dn':''}" data-inc="${k}">${d}<small>${cfmt(v)}</small></div>`}
   const picked=[...incSel],tot=picked.reduce((a,k)=>a+(by[k]||0),0);
   $('#pane').innerHTML=`<div class="row"><b style="font-size:19px">Choose days to count</b><button class="x" data-act="close">✕</button></div>
-  <div class="sub">Tap the Eval days whose profit should count toward your target.</div>
+  <div class="sub">${esc(x.name)} · tap the days whose profit should count toward its target.</div>
   <div class="card ev"><div class="row"><button class="x" data-act="incnav" data-d="-1">‹</button><b>${incCal.toLocaleDateString(undefined,{month:'long',year:'numeric'})}</b><button class="x" data-act="incnav" data-d="1">›</button></div>
   <div class="cg" style="margin-top:10px;grid-template-columns:repeat(7,1fr)">${'SMTWTFS'.split('').map(x=>`<div class="lbl" style="text-align:center">${x}</div>`).join('')}${c}</div></div>
-  <div class="card"><div class="row"><span class="lbl">Counting · ${picked.length} day${picked.length==1?'':'s'}</span><b class="${cls(tot)}">${money(tot,1)}</b></div></div>
+  <div class="card"><div class="row"><span class="lbl">Counting · ${picked.length} day${picked.length==1?'':'s'} · this account</span><b class="${cls(tot)}">${money(tot,1)}</b></div></div>
   <div style="margin-bottom:6px"><button class="chip" data-act="incall">Select all days</button><button class="chip" data-act="incnone">Clear all</button></div>
   <div class="stack" style="margin-top:8px"><button class="btn blue" data-act="incsave">Save</button><button class="btn alt" data-act="close">Cancel</button></div>
   <div class="msg" style="font-size:12px">Days you log after saving are added automatically.</div>`;
 }
-function goalInner(E){
-  const G=S.goals||(S.goals={}),cur=gOf(),g=cur?n(cur.t):0,ev=S.mode=='eval',now=new Date(),td=ymd(now),pm=now.getFullYear()+'-'+pad(now.getMonth()+1);
-  const L=ev?E.filter(evPred(cur&&{s:cur.start,sel:cur.sel,sf:cur.selFrom})):E.filter(e=>e.date.startsWith(pm)),mt=sum(L,'net'),days=new Set(L.map(e=>e.date)).size;
-  const title=ev?'Eval profit target':now.toLocaleDateString(undefined,{month:'long'})+' goal',st='margin:12px 0 0';
-  if(!g||goalEdit)return `<div class="card${evc()}" style="${st}"><div class="lbl">${ev?'Eval profit target':'Monthly goal'}</div><input id="g-in" inputmode="decimal" placeholder="${ev?'Profit needed to pass, e.g. 3000':'Target in USD, e.g. 1000'}" value="${g||''}" style="margin-top:8px"><div class="stack" style="margin-top:10px"><button class="btn blue" data-act="goalset">Set profit target</button>${g?'<button class="btn alt" data-act="goalcancel">Cancel</button>':''}</div><div class="msg" style="margin:8px 0 0;font-size:12px">${ev?'Enter the profit your eval needs to pass. Progress counts all Eval profit since you started, and does not reset each month.':(g?'Clear the box and tap Set profit target to remove your goal.':'Set a profit target for each month. It carries over every month.')}</div></div>`;
-  let left=0;if(!ev){const dim=new Date(now.getFullYear(),now.getMonth()+1,0).getDate();for(let d=now.getDate();d<=dim;d++){const dt=new Date(now.getFullYear(),now.getMonth(),d),w=dt.getDay();if(w>0&&w<6&&!HOLI(ymd(dt)))left++}}
-  const pct=Math.max(0,Math.min(100,mt/g*100)),done=mt>=g,rem=g-mt,tl=(l,v)=>`<div class="tile"><div class="lbl">${l}</div><div style="font-size:14px;font-weight:600;margin-top:3px">${v}</div></div>`;
-  const H=ev?(cur.hist||(cur.prev?[cur.prev]:[])):[],seen=new Set([mt.toFixed(2)]),opts=[],_=H.forEach((h,i)=>{const p=sum(E.filter(evPred(h)),'net'),k=p.toFixed(2);if(!seen.has(k)&&opts.length<3){seen.add(k);opts.push([i,p])}}),tiles=ev?tl('Days traded',days)+tl('Avg per day',days?money(mt/days,1):'—'):(!done&&left?tl('Trading days left',left)+tl('Needed per day',money(rem/left)):'');
-  return `<div class="card${evc()}" style="${st}"><div class="row"><span class="lbl">${title}</span><button class="x" data-act="goaledit" style="font-size:13px">Edit</button></div>
+function accForm(a,first,st){
+  const ph=a?'':(first?'Profit needed to pass, e.g. 3000':'Profit needed, e.g. 3000'),tv=a?a.t:((S.evAccts||[]).length?S.evAccts[S.evAccts.length-1].t:'');
+  return `<div class="card${evc()}" style="${st}"><div class="lbl">${a?'Edit account':(first?'Eval profit target':'Add eval account')}</div>
+  ${first?`<label>How many eval accounts?</label><input id="ga-n" inputmode="numeric" value="${Math.max(1,parseInt((S.prefs||{}).accEval)||1)}">`:`<label>Account name</label><input id="ga-name" value="${a?esc(a.name):'Eval '+((S.evAccts||[]).length+1)}">`}
+  <label>Profit target to pass</label><input id="g-in" inputmode="decimal" placeholder="${ph}" value="${tv||''}">
+  <div class="stack" style="margin-top:10px"><button class="btn blue" data-act="goalset" data-aid="${a?a.id:''}">${a?'Save account':(first?'Set profit target':'Add account')}</button>${first?'':'<button class="btn alt" data-act="goalcancel">Cancel</button>'}${a?'<button class="btn alt" data-act="accdel" data-aid="'+a.id+'">Remove account</button>':''}</div>
+  <div class="msg" style="margin:8px 0 0;font-size:12px">${first?'Each account gets its own progress, restart and day picker. Your trades are split evenly across your accounts.':a?'Removing an account does not delete any of your logged days.':'The new account starts counting from today.'}</div></div>`}
+function accCard(a,E,st){
+  const L=E.filter(accCnt(a)),mt=pa1(L),g=n(a.t),days=new Set(L.map(e=>e.date)).size,pct=Math.max(0,Math.min(100,g?mt/g*100:0)),done=mt>=g,rem=g-mt;
+  const H=a.hist||[],seen=new Set([mt.toFixed(2)]),opts=[];H.forEach((h,i)=>{const p=pa1(E.filter(accCnt(a,h))),k=p.toFixed(2);if(!seen.has(k)&&opts.length<3){seen.add(k);opts.push([i,p])}});
+  const tl=(l,v)=>`<div class="tile"><div class="lbl">${l}</div><div style="font-size:14px;font-weight:600;margin-top:3px">${v}</div></div>`;
+  return `<div class="card${evc()}" style="${st}"><div class="row"><span class="lbl">${esc(a.name)}</span><button class="x" data-act="goaledit" data-aid="${a.id}" style="font-size:13px">Edit</button></div>
   <div class="row" style="margin-top:6px"><b class="${cls(mt)}" style="font-size:22px">${money(mt,1)}</b><span class="sub" style="margin:0">of ${money(g)} target</span></div>
   <div style="height:10px;border-radius:5px;background:var(--bg);border:1px solid var(--line);margin:10px 0 8px;overflow:hidden"><div style="width:${pct.toFixed(1)}%;height:100%;border-radius:5px;background:var(--up)"></div></div>
-  <div class="row" style="font-size:12px;color:var(--mut)"><span>${done?(ev?'Target reached':'Goal hit'):Math.round(pct)+'% there'}</span><span>${done?'+'+money(mt-g)+' over':money(rem)+' to go'}</span></div>
-  ${tiles?`<div class="grid" style="margin-top:10px;gap:8px">${tiles}</div>`:''}${ev?`${opts.length?`<div class="tile" style="margin-top:10px"><div class="lbl">Eval progress changed</div><div style="font-size:13px;margin-top:4px">Pick the progress you want.</div><div class="stack" style="margin-top:8px">${opts.map(([i,p],j)=>`<button class="btn ${j?'alt':'blue'}" data-act="goalundo" data-i="${i}">Go back to ${money(p,1)}</button>`).join('')}<button class="btn alt" data-act="goalkeep">Stay at ${money(mt,1)}</button></div></div>`:''}<button class="btn alt" data-act="incopen" style="margin-top:10px">Choose days to count</button><button class="btn alt" data-act="goalnew" style="margin-top:10px">${cur.start?'Restart eval progress':'Start new eval'}</button><div class="msg" style="margin:6px 0 0;font-size:12px">${cur.sel?'Counting '+cur.sel.length+' chosen day'+(cur.sel.length==1?'':'s')+', plus anything you log after '+cur.selFrom+'.':(cur.start?'Counting Eval profit since '+cur.start+'.':'Counting all Eval profit so far.')} Tap when you start a fresh eval to reset progress to $0.</div>`:''}</div>`;
+  <div class="row" style="font-size:12px;color:var(--mut)"><span>${done?'Target reached':Math.round(pct)+'% there'}</span><span>${done?'+'+money(mt-g)+' over':money(rem)+' to go'}</span></div>
+  <div class="grid" style="margin-top:10px;gap:8px">${tl('Days traded',days)}${tl('Avg per day',days?money(mt/days,1):'—')}</div>
+  ${opts.length?`<div class="tile" style="margin-top:10px"><div class="lbl">Progress changed</div><div style="font-size:13px;margin-top:4px">Pick the progress you want.</div><div class="stack" style="margin-top:8px">${opts.map(([i,p],j)=>`<button class="btn ${j?'alt':'blue'}" data-act="goalundo" data-aid="${a.id}" data-i="${i}">Go back to ${money(p,1)}</button>`).join('')}<button class="btn alt" data-act="goalkeep" data-aid="${a.id}">Stay at ${money(mt,1)}</button></div></div>`:''}
+  <div class="stack" style="margin-top:10px"><button class="btn alt" data-act="incopen" data-aid="${a.id}">Choose days to count</button><button class="btn alt" data-act="goalnew" data-aid="${a.id}">${a.start||a.sel?'Restart progress':'Start new eval'}</button></div>
+  <div class="msg" style="margin:6px 0 0;font-size:12px">${a.sel?'Counting '+a.sel.length+' chosen day'+(a.sel.length==1?'':'s')+', plus anything you log after '+a.selFrom+'.':(a.start?'Counting profit since '+a.start+'.':'Counting all Eval profit'+(a.from?' since '+a.from:' so far')+'.')}</div></div>`}
+function evInner(E){
+  const A=ensureAcc(),st='margin:12px 0 0';
+  if(!A||!A.length)return accForm(null,true,st);
+  if(goalEdit=='new')return accForm(null,false,st);
+  const tot=A.reduce((s,a)=>s+pa1(E.filter(accCnt(a))),0);
+  return (A.length>1?`<div class="row" style="margin:14px 2px 0"><span class="lbl">${A.length} eval accounts</span><span class="sub" style="margin:0;font-size:12px">${money(tot,1)} combined</span></div>`:'')+A.map(a=>goalEdit==a.id?accForm(a,false,st):accCard(a,E,st)).join('')+`<div class="stack" style="margin-top:12px"><button class="btn alt" data-act="goaledit" data-aid="new">+ Add eval account</button>${A.length>1?'<button class="btn alt" data-act="restartall">Restart all accounts</button>':''}</div>`}
+function goalInner(E){
+  if(S.mode=='eval')return evInner(E);
+  const cur=gOf(),g=cur?n(cur.t):0,now=new Date(),pm=now.getFullYear()+'-'+pad(now.getMonth()+1),st='margin:12px 0 0';
+  if(!g||goalEdit)return `<div class="card${evc()}" style="${st}"><div class="lbl">Monthly goal</div><input id="g-in" inputmode="decimal" placeholder="Target in USD, e.g. 1000" value="${g||''}" style="margin-top:8px"><div class="stack" style="margin-top:10px"><button class="btn blue" data-act="goalset">Set profit target</button>${g?'<button class="btn alt" data-act="goalcancel">Cancel</button>':''}</div><div class="msg" style="margin:8px 0 0;font-size:12px">${g?'Clear the box and tap Set profit target to remove your goal.':'Set a profit target for each month. It carries over every month.'}</div></div>`;
+  const mt=sum(E.filter(e=>e.date.startsWith(pm)),'net');let left=0;const dim=new Date(now.getFullYear(),now.getMonth()+1,0).getDate();for(let d=now.getDate();d<=dim;d++){const dt=new Date(now.getFullYear(),now.getMonth(),d),w=dt.getDay();if(w>0&&w<6&&!HOLI(ymd(dt)))left++}
+  const pct=Math.max(0,Math.min(100,mt/g*100)),done=mt>=g,rem=g-mt,tl=(l,v)=>`<div class="tile"><div class="lbl">${l}</div><div style="font-size:14px;font-weight:600;margin-top:3px">${v}</div></div>`,tiles=!done&&left?tl('Trading days left',left)+tl('Needed per day',money(rem/left)):'';
+  return `<div class="card${evc()}" style="${st}"><div class="row"><span class="lbl">${now.toLocaleDateString(undefined,{month:'long'})} goal</span><button class="x" data-act="goaledit" style="font-size:13px">Edit</button></div>
+  <div class="row" style="margin-top:6px"><b class="${cls(mt)}" style="font-size:22px">${money(mt,1)}</b><span class="sub" style="margin:0">of ${money(g)} target</span></div>
+  <div style="height:10px;border-radius:5px;background:var(--bg);border:1px solid var(--line);margin:10px 0 8px;overflow:hidden"><div style="width:${pct.toFixed(1)}%;height:100%;border-radius:5px;background:var(--up)"></div></div>
+  <div class="row" style="font-size:12px;color:var(--mut)"><span>${done?'Goal hit':Math.round(pct)+'% there'}</span><span>${done?'+'+money(mt-g)+' over':money(rem)+' to go'}</span></div>${tiles?`<div class="grid" style="margin-top:10px;gap:8px">${tiles}</div>`:''}</div>`;
 }
 function symHTML(E){
   const now=new Date(),pm=now.getFullYear()+'-'+pad(now.getMonth()+1),st=wkStart||monOf(now),a=ymd(st),b=ymd(new Date(st.getFullYear(),st.getMonth(),st.getDate()+6));
   const L=E.filter(e=>symP=='all'||(symP=='month'?e.date.startsWith(pm):e.date>=a&&e.date<=b)),M={};
-  L.forEach(e=>{const k=n(e.accounts)||1;(e.trades||[]).forEach(t=>{const s=(t.symbol||'').trim().toUpperCase().replace(/[FGHJKMNQUVXZ]\d{1,2}$/,'');if(!s)return;const o=M[s]||(M[s]={s,p:0,c:0,w:[],l:[],lg:0,sh:0,lw:0,ll:0,sw:0,sl:0});const v=n(t.pnl)*k;o.p+=v;o.c++;if(t.res=='W')o.w.push(v);if(t.res=='L')o.l.push(v);const lng=/^l/i.test(t.side||'');if(lng)o.lg+=v;else if(t.side)o.sh+=v;if(t.res=='W'){lng?o.lw++:o.sw++}if(t.res=='L'){lng?o.ll++:o.sl++}})});
-  const R=Object.values(M).sort((x,y)=>Math.abs(y.p)-Math.abs(x.p)),mx=R.length?Math.max(...R.map(r=>Math.abs(r.p)))||1:1,av=x=>x.length?x.reduce((p,q)=>p+q,0)/x.length:0;
+  L.forEach(e=>{const k=n(e.accounts)||1,fp=n(e.micros)>0?n(e.fees)/n(e.micros):n(S.rate);(e.trades||[]).forEach(t=>{const s=(t.symbol||'').trim().toUpperCase().replace(/[FGHJKMNQUVXZ]\d{1,2}$/,'');if(!s)return;const o=M[s]||(M[s]={s,p:0,c:0,w:[],l:[],lg:0,sh:0,lw:0,ll:0,sw:0,sl:0});const v=n(t.pnl)*k-n(t.qty)*k*fp;o.p+=v;o.c++;if(t.res=='W')o.w.push(v);if(t.res=='L')o.l.push(v);const lng=/^l/i.test(t.side||'');if(lng)o.lg+=v;else if(t.side)o.sh+=v;if(t.res=='W'){lng?o.lw++:o.sw++}if(t.res=='L'){lng?o.ll++:o.sl++}})});
+  const R=Object.values(M).sort((x,y)=>Math.abs(y.p)-Math.abs(x.p)),totNet=sum(L,'net'),rest=totNet-R.reduce((a,r)=>a+r.p,0);if(Math.abs(rest)>=.5)R.push({s:'Other / no symbol',p:rest,c:0,w:[],l:[],other:1});const mx=R.length?Math.max(...R.map(r=>Math.abs(r.p)))||1:1,av=x=>x.length?x.reduce((p,q)=>p+q,0)/x.length:0;
   const chips=[['all','All time'],['month','Month'],['week','Week']].map(([k,l])=>`<button class="chip ${symP==k?'on':''}" data-act="symp" data-p="${k}">${l}</button>`).join('');
   const tot=R.reduce((x,r)=>({lg:x.lg+r.lg,sh:x.sh+r.sh,lw:x.lw+r.lw,ll:x.ll+r.ll,sw:x.sw+r.sw,sl:x.sl+r.sl}),{lg:0,sh:0,lw:0,ll:0,sw:0,sl:0}),wr=(w,l)=>w+l?Math.round(w/(w+l)*100)+'%':'—';
-  return `<div class="card${evc()}"><div class="lbl" style="margin-bottom:8px">Results by symbol</div><div>${chips}</div>`+(R.length?R.map(r=>{const wn=r.w.length,ls=r.l.length;return `<div style="border-top:1px solid var(--line);padding:10px 0 2px;margin-top:2px"><div class="row"><b>${esc(r.s)}</b><b class="${cls(r.p)}">${money(r.p,1)}</b></div><div style="height:6px;border-radius:3px;background:var(--bg);margin:7px 0 6px"><div style="width:${Math.max(3,Math.abs(r.p)/mx*100).toFixed(0)}%;height:6px;border-radius:3px;background:var(${r.p<0?'--dn':'--up'})"></div></div><div style="font-size:12px;color:var(--mut)">${r.c} trade${r.c==1?'':'s'}${wn+ls?' · '+Math.round(wn/(wn+ls)*100)+'% win':''}${wn?' · avg win '+money(av(r.w)):''}${ls?' · avg loss '+money(av(r.l)):''}</div></div>`}).join('')+`<div class="grid" style="margin-top:10px;gap:8px"><div class="tile"><div class="lbl">Long</div><div class="${cls(tot.lg)}" style="font-size:14px;font-weight:600;margin-top:3px">${money(tot.lg,1)} · ${wr(tot.lw,tot.ll)}</div></div><div class="tile"><div class="lbl">Short</div><div class="${cls(tot.sh)}" style="font-size:14px;font-weight:600;margin-top:3px">${money(tot.sh,1)} · ${wr(tot.sw,tot.sl)}</div></div></div>`:`<div class="msg" style="margin:6px 0 0">No trades with a symbol in this period.</div>`)+`</div>`;
+  return `<div class="card${evc()}"><div class="row" style="margin-bottom:8px"><span class="lbl">Results by symbol</span><span class="sub" style="margin:0;font-size:12px">after commissions</span></div><div>${chips}</div>`+(R.length?R.map(r=>{const wn=r.w.length,ls=r.l.length;return `<div style="border-top:1px solid var(--line);padding:10px 0 2px;margin-top:2px"><div class="row"><b>${esc(r.s)}</b><b class="${cls(r.p)}">${money(r.p,1)}</b></div><div style="height:6px;border-radius:3px;background:var(--bg);margin:7px 0 6px"><div style="width:${Math.max(3,Math.abs(r.p)/mx*100).toFixed(0)}%;height:6px;border-radius:3px;background:var(${r.p<0?'--dn':'--up'})"></div></div><div style="font-size:12px;color:var(--mut)">${r.other?'Days without trade details, or the gap between your entered day total and trade totals':r.c+' trade'+(r.c==1?'':'s')}${wn+ls?' · '+Math.round(wn/(wn+ls)*100)+'% win':''}${wn?' · avg win '+money(av(r.w)):''}${ls?' · avg loss '+money(av(r.l)):''}</div></div>`}).join('')+`<div class="row" style="border-top:1px solid var(--line);margin-top:6px;padding-top:10px"><b>Total net</b><b class="${cls(totNet)}">${money(totNet,1)}</b></div><div class="grid" style="margin-top:10px;gap:8px"><div class="tile"><div class="lbl">Long</div><div class="${cls(tot.lg)}" style="font-size:14px;font-weight:600;margin-top:3px">${money(tot.lg,1)} · ${wr(tot.lw,tot.ll)}</div></div><div class="tile"><div class="lbl">Short</div><div class="${cls(tot.sh)}" style="font-size:14px;font-weight:600;margin-top:3px">${money(tot.sh,1)} · ${wr(tot.sw,tot.sl)}</div></div></div>`:`<div class="msg" style="margin:6px 0 0">No trades with a symbol in this period.</div>`)+`</div>`;
 }
 function statsHTML(E){
   if(!E.length)return '<div class="empty">Log a few days to see your stats.</div>';
@@ -383,7 +415,7 @@ function lockScroll(){const b=document.body;if(lockY!==null||!b||!b.style)return
 function unlockScroll(){const b=document.body;if(lockY===null||!b||!b.style)return;const y=lockY;lockY=null;b.style.position='';b.style.top='';b.style.left='';b.style.right='';window.scrollTo(0,y)}
 function openSheet(){clearTimeout(closeT);const s=$('#sheet'),p=$('#pane');s.classList.remove('closing');p.style.transition='';p.style.transform='';s.style.transition='';s.style.background='';lockScroll();s.classList.add('open')}
 function closeSheet(){const s=$('#sheet');draft=null;xd=null;wd=null;status='';if(!s.classList.contains('open')||s.classList.contains('closing'))return;s.classList.add('closing');closeT=setTimeout(()=>{s.classList.remove('open','closing');unlockScroll();rollAll()},220)}
-const defAcc=m=>Math.max(1,parseInt((S.prefs||{})[({eval:'accEval',sim:'accSim'})[m]||'accPA'])||1);
+const defAcc=m=>m=='eval'&&S.evAccts&&S.evAccts.length?Math.min(99,S.evAccts.length):Math.max(1,parseInt((S.prefs||{})[({eval:'accEval',sim:'accSim'})[m]||'accPA'])||1);
 function newDraft(o){return Object.assign({imgs:[],accounts:defAcc(S.mode||'pa'),mode:S.mode||'pa',id:null,date:today(),trades:[],micros:'',microsPer:'',ntr:1,basis:'net',net:'',notes:'',tags:[]},o)}
 function stag(){const p=$('#pane');p.classList.remove('stag');void p.offsetWidth;p.classList.add('stag');setTimeout(()=>p.classList.remove('stag'),700)}
 function paint(a){paint0();if(a)stag()}
@@ -580,7 +612,7 @@ const lsSet=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}};
 let sess=lsGet(K_SESS,null),sy=lsGet(K_SYNC,{since:null,h:{}}),syncing=false,syncErr='',syncT=null;
 function stab(o){if(Array.isArray(o))return '['+o.map(stab).join(',')+']';if(o&&typeof o=='object')return '{'+Object.keys(o).filter(k=>o[k]!==undefined).sort().map(k=>JSON.stringify(k)+':'+stab(o[k])).join(',')+'}';return JSON.stringify(o)}
 function hsh(s){let h1=0xdeadbeef,h2=0x41c6ce57;for(let i=0,c;i<s.length;i++){c=s.charCodeAt(i);h1=Math.imul(h1^c,2654435761);h2=Math.imul(h2^c,1597334677)}h1=Math.imul(h1^(h1>>>16),2246822507)^Math.imul(h2^(h2>>>13),3266489909);h2=Math.imul(h2^(h2>>>16),2246822507)^Math.imul(h1^(h1>>>13),3266489909);return (4294967296*(2097151&h2)+(h1>>>0)).toString(36)}
-function settingsObj(){const o={rate:S.rate,taxPct:S.taxPct,deductFees:S.deductFees!==false,fx:S.fx??null,recon:S.recon||{},goals:S.goals||{}};if(S.syncKey){const k=localStorage.getItem('futuresLedgerKey');if(k)o.apiKey=k}return o}
+function settingsObj(){const o={rate:S.rate,taxPct:S.taxPct,deductFees:S.deductFees!==false,fx:S.fx??null,recon:S.recon||{},goals:S.goals||{},evAccts:S.evAccts||null};if(S.syncKey){const k=localStorage.getItem('futuresLedgerKey');if(k)o.apiKey=k}return o}
 function items(){const m={};[['entry','entries'],['expense','expenses'],['payout','withdrawals']].forEach(([kd,L])=>S[L].forEach(e=>{if(!e.id)e.id=uid();m[kd+':'+e.id]=e}));m['settings:main']=settingsObj();if(S.prefs&&Object.keys(S.prefs).length)m['prefs:main']=S.prefs;return m}
 function pendingCount(){const c=items();let n=0;for(const k in c)if(sy.h[k]!==hsh(stab(c[k])))n++;for(const k in sy.h)if(!(k in c))n++;return n}
 function syncLabel(){if(!sess)return 'Not signed in';if(syncing)return 'Syncing…';if(syncErr)return syncErr;const p=pendingCount();return (p?p+' change'+(p==1?'':'s')+' waiting · ':'')+(sy.last?'Synced '+new Date(sy.last).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'}):'Not synced yet')}
@@ -614,7 +646,7 @@ async function doLogin(){
 function applyRec(w){
   const k=w.kind+':'+w.id;
   if(w.kind=='settings'){if(w.deleted)return false;const d=w.data||{},before=stab(settingsObj());
-    if(d.rate!=null)S.rate=d.rate;if(d.taxPct!=null)S.taxPct=d.taxPct;if(d.deductFees!=null)S.deductFees=d.deductFees;if('fx' in d)S.fx=d.fx;if(d.recon)S.recon=d.recon;if(d.goals)S.goals=d.goals;else if(d.goal!=null&&!S.goals)S.goals={pa:{t:d.goal}};
+    if(d.rate!=null)S.rate=d.rate;if(d.taxPct!=null)S.taxPct=d.taxPct;if(d.deductFees!=null)S.deductFees=d.deductFees;if('fx' in d)S.fx=d.fx;if(d.recon)S.recon=d.recon;if(d.goals)S.goals=d.goals;if(d.evAccts)S.evAccts=d.evAccts;else if(d.goal!=null&&!S.goals)S.goals={pa:{t:d.goal}};
     if(d.apiKey){S.syncKey=true;if(!localStorage.getItem('futuresLedgerKey'))localStorage.setItem('futuresLedgerKey',d.apiKey)}
     const after=stab(settingsObj());sy.h[k]=hsh(after);return before!==after}
   if(w.kind=='prefs'){const before=stab(S.prefs||{});if(w.deleted){S.prefs={};delete sy.h[k]}else{S.prefs={...(w.data||{})};sy.h[k]=hsh(stab(S.prefs))}applyPrefs();return before!==stab(S.prefs||{})}
@@ -1125,17 +1157,24 @@ document.addEventListener('click',e=>{
     const cad=+(u*f).toFixed(2);delete wd._c;Object.assign(wd,{usd:u,fx:f,cad,pct:S.taxPct,setUsd:+(u*S.taxPct/100).toFixed(2),setCad:+(cad*S.taxPct/100).toFixed(2)});S.fx=f;
     if(wd.id)S.withdrawals=S.withdrawals.map(v=>v.id==wd.id?wd:v);else{wd.id=Date.now().toString(36);S.withdrawals.push(wd)}save();closeSheet();render()}
   else if(a=='symp'){symP=D.p;const y=getSc();render();setSc(y)}
-  else if(a=='goalset'){const v=n(($('#g-in')||{}).value),G=S.goals||(S.goals={});gOf();if(v>0)G[S.mode]=Object.assign({},G[S.mode],{t:v});else delete G[S.mode];if(S.mode=='pa')S.goal=null;goalEdit=false;save();goalSwap()}
-  else if(a=='goalnew'){if(!g._c){g._c=1;g.textContent='You sure? Tap again to restart';g.style.color='var(--dn)';return}const G=S.goals||(S.goals={});if(G.eval){if(G.eval.prev&&!G.eval.hist){G.eval.hist=[G.eval.prev]}delete G.eval.prev;G.eval.hist=[{s:G.eval.start||null,sel:G.eval.sel,sf:G.eval.selFrom}].concat(G.eval.hist||[]).slice(0,8);G.eval.start=today();delete G.eval.sel;delete G.eval.selFrom;save();goalSwap()}}
-  else if(a=='goalundo'){const G=S.goals||(S.goals={}),H=G.eval&&(G.eval.hist||(G.eval.prev?[G.eval.prev]:null)),i=+g.dataset.i;if(H&&H[i]){if(H[i].s)G.eval.start=H[i].s;else delete G.eval.start;if(H[i].sel){G.eval.sel=H[i].sel;G.eval.selFrom=H[i].sf}else{delete G.eval.sel;delete G.eval.selFrom}G.eval.hist=H.slice(i+1);delete G.eval.prev;save();goalSwap()}}
-  else if(a=='incopen'){incSel=new Set(evDays());incCal=new Date();openSheet();paintInc();stag()}
-  else if(a=='incnav'){incCal=new Date(incCal.getFullYear(),incCal.getMonth()+ +D.d,1);paintInc()}
-  else if(a=='incall'){S.entries.filter(inMode).forEach(e=>incSel.add(e.date));paintInc()}
-  else if(a=='incnone'){incSel=new Set();paintInc()}
-  else if(a=='incsave'){const G=S.goals||(S.goals={});if(G.eval){G.eval.hist=[{s:G.eval.start||null,sel:G.eval.sel,sf:G.eval.selFrom}].concat(G.eval.hist||[]).slice(0,8);G.eval.sel=[...incSel].sort();G.eval.selFrom=today();save();closeSheet();goalSwap()}}
-  else if(a=='goalkeep'){const G=S.goals||(S.goals={});if(G.eval){delete G.eval.prev;delete G.eval.hist;save();goalSwap()}}
+  else if(a=='goalset'){const v=n(($('#g-in')||{}).value);
+    if(S.mode=='eval'){const A=S.evAccts||(S.evAccts=[]),aid=D.aid,nm=(($('#ga-name')||{}).value||'').trim();
+      if(aid){const x=A.find(z=>z.id==aid);if(x){if(v>0)x.t=v;if(nm)x.name=nm}}
+      else if(v>0){if(!A.length){const c=Math.max(1,Math.min(20,parseInt(($('#ga-n')||{}).value)||1));for(let i=1;i<=c;i++)A.push({id:Date.now().toString(36)+i,name:'Eval '+i,t:v})}else A.push({id:Date.now().toString(36),name:nm||'Eval '+(A.length+1),t:v,from:today()})}
+      goalEdit=false;save();goalSwap()}
+    else{const G=S.goals||(S.goals={});gOf();if(v>0)G[S.mode]=Object.assign({},G[S.mode],{t:v});else delete G[S.mode];if(S.mode=='pa')S.goal=null;goalEdit=false;save();goalSwap()}}
+  else if(a=='goalnew'){if(!g._c){g._c=1;g.textContent='You sure? Tap again to restart';g.style.color='var(--dn)';return}const x=accOf(D.aid);if(x){x.hist=[{s:x.start||null,sel:x.sel,sf:x.selFrom}].concat(x.hist||[]).slice(0,8);x.start=today();delete x.sel;delete x.selFrom;save();goalSwap()}}
+  else if(a=='restartall'){if(!g._c){g._c=1;g.textContent='You sure? Tap again to restart all';g.style.color='var(--dn)';return}(S.evAccts||[]).forEach(x=>{x.hist=[{s:x.start||null,sel:x.sel,sf:x.selFrom}].concat(x.hist||[]).slice(0,8);x.start=today();delete x.sel;delete x.selFrom});save();goalSwap()}
+  else if(a=='accdel'){if(!g._c){g._c=1;g.textContent='You sure? Tap again to remove';g.style.color='var(--dn)';return}S.evAccts=(S.evAccts||[]).filter(z=>z.id!=D.aid);goalEdit=false;save();goalSwap()}
+  else if(a=='goalundo'){const x=accOf(D.aid),H=x&&x.hist,i=+D.i;if(H&&H[i]){if(H[i].s)x.start=H[i].s;else delete x.start;if(H[i].sel){x.sel=H[i].sel;x.selFrom=H[i].sf}else{delete x.sel;delete x.selFrom}x.hist=H.slice(i+1);save();goalSwap()}}
+  else if(a=='goalkeep'){const x=accOf(D.aid);if(x){delete x.hist;save();goalSwap()}}
   else if(a=='goalcancel'){goalEdit=false;goalSwap()}
-  else if(a=='goaledit'){goalEdit=true;goalSwap()}
+  else if(a=='goaledit'){goalEdit=D.aid||true;goalSwap()}
+  else if(a=='incopen'){incAcct=D.aid;const x=accOf(D.aid);if(!x)return;incSel=new Set(evDays(x));incCal=new Date();openSheet();paintInc();stag()}
+  else if(a=='incnav'){incCal=new Date(incCal.getFullYear(),incCal.getMonth()+ +D.d,1);paintInc()}
+  else if(a=='incall'){const x=accOf(incAcct);S.entries.filter(e=>inMode(e)&&(!x.from||e.date>=x.from)).forEach(e=>incSel.add(e.date));paintInc()}
+  else if(a=='incnone'){incSel=new Set();paintInc()}
+  else if(a=='incsave'){const x=accOf(incAcct);if(x){x.hist=[{s:x.start||null,sel:x.sel,sf:x.selFrom}].concat(x.hist||[]).slice(0,8);x.sel=[...incSel].sort();x.selFrom=today();save();closeSheet();goalSwap()}}
   else if(a=='tgfees'){S.deductFees=(S.deductFees===false);save();render()}
   else if(a=='csvimp')$('#csvin').click();
   else if(a=='close'||a=='done')closeSheet();
