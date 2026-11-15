@@ -27,7 +27,7 @@ h1{font-size:26px;margin:8px 0 2px;font-weight:650;letter-spacing:-.02em}
 .card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px;margin-bottom:12px}
 .big{font-size:38px;font-weight:650;letter-spacing:-.03em}
 .lbl{color:var(--mut);font-size:12px;text-transform:uppercase;letter-spacing:.08em}
-.grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
+.g3{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:6px!important}.g3 .tile{padding:8px 8px}.g3 .lbl{font-size:10.5px;white-space:nowrap}.grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
 .grid .card{margin:0}.mid{font-size:22px;font-weight:600;margin-top:4px}
 .up{color:var(--up)}.org{color:#c98b4a}.dn{color:var(--dn)}
 .row{display:flex;justify-content:space-between;align-items:center;gap:12px}
@@ -57,9 +57,9 @@ label{display:block;color:var(--mut);font-size:12px;margin:10px 0 4px}
 .x{background:none;border:0;color:var(--mut);font-size:20px;padding:4px 8px}
 .msg{font-size:14px;color:var(--mut);margin:8px 0}.err{color:var(--dn)}
 .empty{text-align:center;color:var(--mut);padding:36px 8px}
-.cg{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.cg{display:grid;grid-template-columns:repeat(7,1fr) 1.25fr;gap:4px}.cw{aspect-ratio:auto;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:10px;color:var(--mut);background:var(--bg);border:1px dashed var(--line)}.cw b{font-size:10.5px;font-weight:600}.cw.up b{color:var(--up)}.cw.dn b{color:var(--dn)}
 .cd{aspect-ratio:1;border-radius:10px;border:1px solid var(--line);display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:13px;cursor:pointer}
-.cd small{font-size:9px;color:var(--mut)}
+.cd small{font-size:9px;color:var(--mut)}.cd.pick{background:var(--blu);border-color:var(--blu);color:var(--btntx,#fff)}.cd.pick small{color:var(--btntx,#fff)}.cd.off{opacity:.3;cursor:default}
 .cd.up{background:var(--upbg,rgba(70,160,100,.3))}.cd.dn{background:var(--dnbg,rgba(210,90,70,.3))}.cd.td{outline:1.5px solid var(--blu)}
 @keyframes fi{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 @keyframes fo{from{opacity:0}to{opacity:1}}
@@ -224,7 +224,7 @@ function render(){
     h=`${hdr('Futures Ledger',1)}<div class="sub">${new Date().toLocaleDateString(undefined,{weekday:'long',month:'long',day:'numeric'})} · <span class="syncs">${esc(syncLabel())}</span></div>
     <div class="card${evc()}"><div class="lbl">Today, net</div><div class="big dual ${cls(tn)}"><span>${odo('today',money(tn,1))}</span>${fxr()?`<span class="dc">${cm(tn*fxr(),1)} CAD</span>`:''}</div></div>
     <div class="grid"><div class="card${evc()}"><div class="lbl">This month</div><div class="mid ${cls(net(ym))}">${odo('month',money(net(ym),1))}</div>${cadLine(net(ym),1,cls(net(ym)))}</div>
-    <div class="card${evc()}"><div class="lbl">This year</div><div class="mid ${cls(net(y))}">${odo('year',money(net(y),1))}</div>${cadLine(net(y),1,cls(net(y)))}</div></div>${fxNote()}
+    <div class="card${evc()}"><div class="lbl">This year</div><div class="mid ${cls(net(y))}">${odo('year',money(net(y),1))}</div>${cadLine(net(y),1,cls(net(y)))}</div></div>${goalHTML(E)}${fxNote()}
     <div style="height:14px"></div><div class="stack"><button class="btn blue" data-act="manual">Add Trade</button><button class="btn alt" data-act="exp">Add expense</button></div>
     ${E.length?`<div class="lbl" style="margin:18px 0 6px">Recent</div><div class="card">${E.slice(0,4).map(row).join('')}</div>`:''}`;
   }else if(tab=='log'){h=`${hdr('Journal',1)}<div class="sub">${E.length} logged day${E.length==1?'':'s'}. Tap a date to add or edit.</div>`+calHTML(E)+(()=>{const p=cal.getFullYear()+'-'+pad(cal.getMonth()+1),M=E.filter(e=>e.date.startsWith(p)).sort((a,b)=>b.date.localeCompare(a.date));return `<div class="lbl" style="margin:14px 0 6px">${cal.toLocaleDateString(undefined,{month:'long',year:'numeric'})} logs, newest first</div>`+(M.length?`<div class="card">${M.map(row).join('')}</div>`:'<div class="empty">No days logged this month.</div>')})();
@@ -245,10 +245,13 @@ function cfmt(v){
 function calHTML(E){
   const y=cal.getFullYear(),m=cal.getMonth(),first=new Date(y,m,1).getDay(),dim=new Date(y,m+1,0).getDate(),p=y+'-'+pad(m+1),by={};
   E.forEach(e=>{if(e.date.startsWith(p))by[e.date]=(by[e.date]||0)+n(e.net)});
-  let c='';for(let i=0;i<first;i++)c+='<div></div>';
-  for(let d=1;d<=dim;d++){const k=p+'-'+pad(d),v=by[k];c+=`<div class="cd ${v===undefined?'':v>0?'up':v<0?'dn':''}${k==today()?' td':''}${HC(k)}" data-day="${k}">${d}${v===undefined?'':`<small>${cfmt(v)}</small>`}</div>`}
+  const wkT=(from,to)=>{let t=0,has=false;for(let d=from;d<=to;d++){const v=by[p+'-'+pad(d)];if(v!==undefined){t+=v;has=true}}return has?t:undefined},wkCell=(t,lab)=>`<div class="cw ${t===undefined?'':t>0?'up':t<0?'dn':''}"><span>${lab}</span>${t===undefined?'':`<b>${cfmt(t)}</b>`}</div>`;
+  let c='',col=0,ws=1;for(let i=0;i<first;i++){c+='<div></div>';col++}
+  let wn=0;
+  for(let d=1;d<=dim;d++){const k=p+'-'+pad(d),v=by[k];c+=`<div class="cd ${v===undefined?'':v>0?'up':v<0?'dn':''}${k==today()?' td':''}${HC(k)}" data-day="${k}">${d}${v===undefined?'':`<small>${cfmt(v)}</small>`}</div>`;col++;
+    if(col==7||d==dim){for(let j=col;j<7&&col<7;j++){c+='<div></div>'}wn++;c+=wkCell(wkT(ws,d),'Wk '+wn);col=0;ws=d+1}}
   const mt=Object.values(by).reduce((a,b)=>a+b,0);
-  return `<div class="card${evc()}"><div class="row"><button class="x" data-cal="-1">‹</button><b>${cal.toLocaleDateString(undefined,{month:'long',year:'numeric'})}</b><button class="x" data-cal="1">›</button></div><div class="row" style="margin:4px 0 10px"><span class="lbl">Month net</span><div style="text-align:right"><b class="${cls(mt)}">${odo('mnet',money(mt,1))}</b>${cadLine(mt,1,cls(mt))}</div></div><div class="cg${evc()}">${'SMTWTFS'.split('').map(x=>`<div class="lbl" style="text-align:center">${x}</div>`).join('')}${c}</div><div class="msg" style="margin:10px 0 0;font-size:12px">Purple outline: US market holiday (solid = closed, dashed = early close, dotted = banks only). Tap it for details.</div></div>`;
+  return `<div class="card${evc()}"><div class="row"><button class="x" data-cal="-1">‹</button><b>${cal.toLocaleDateString(undefined,{month:'long',year:'numeric'})}</b><button class="x" data-cal="1">›</button></div><div class="row" style="margin:4px 0 10px"><span class="lbl">Month net</span><div style="text-align:right"><b class="${cls(mt)}">${odo('mnet',money(mt,1))}</b>${cadLine(mt,1,cls(mt))}</div></div><div class="cg${evc()}">${'SMTWTFS'.split('').map(x=>`<div class="lbl" style="text-align:center">${x}</div>`).join('')}<div class="lbl" style="text-align:center">Wk</div>${c}</div><div class="msg" style="margin:10px 0 0;font-size:12px">Right column: weekly total. Purple outline: US market holiday (solid = closed, dashed = early close, dotted = banks only). Tap it for details.</div></div>`;
 }
 function chartHTML(A){
   const vals=[0],dts=[A[0].date];let c=0;A.forEach(e=>{c+=n(e.net);vals.push(c);dts.push(e.date)});
@@ -267,16 +270,16 @@ function chartHTML(A){
   for(let j=0;j<cnt;j++){const i=Math.round(j*(vals.length-1)/((cnt-1)||1));xl+=`<text x="${X(i).toFixed(1)}" y="${H-6}" text-anchor="${j==0?'start':j==cnt-1?'end':'middle'}" font-size="10" fill="var(--mut)">${fd(dts[i],{month:'short',day:'numeric'})}</text>`}
   return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="margin-top:10px"><defs><linearGradient id="eqg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6f94bf" stop-opacity=".55"/><stop offset="1" stop-color="#6f94bf" stop-opacity="0"/></linearGradient></defs>${grid}<path d="${area}" fill="url(#eqg)" class="eqarea"/><path d="${d}" pathLength="1" fill="none" stroke="#7aa0cc" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" class="eqline"/><circle cx="${last[0].toFixed(1)}" cy="${last[1].toFixed(1)}" r="7" fill="#7aa0cc" opacity=".25"/><circle cx="${last[0].toFixed(1)}" cy="${last[1].toFixed(1)}" r="3.6" fill="#7aa0cc" stroke="var(--card)" stroke-width="1.5"/>${xl}</svg><div class="row" style="margin-top:6px"><span class="lbl">Total</span><b class="${cls(c)}">${money(c,1)}</b></div>`;
 }
-let wkStart=null;
+let wkStart=null,symP='all',goalEdit=false,evUndo=null,incSel=new Set(),incCal=new Date();
 const ymd=x=>x.getFullYear()+'-'+pad(x.getMonth()+1)+'-'+pad(x.getDate());
 function monOf(d){const x=new Date(d);x.setHours(12,0,0,0);x.setDate(x.getDate()-((x.getDay()+6)%7));return x}
-function barHTML(E){
+function barHTML(E,X){
   if(!wkStart)wkStart=monOf(new Date());
   const day=i=>{const d=new Date(wkStart);d.setDate(d.getDate()+i);return d},net=i=>{const L=E.filter(e=>e.date==ymd(day(i)));return L.length?sum(L,'net'):null};
   const wk=[0,1,2,3,4].map(i=>({lab:day(i).toLocaleDateString(undefined,{weekday:'short'}),sub:day(i).getDate(),v:net(i)}));
   const we=[5,6].map(net).filter(v=>v!==null);if(we.length)wk.push({lab:'Wknd',sub:'',v:we.reduce((a,b)=>a+b,0)});
   const real=wk.map(c=>c.v).filter(v=>v!==null),tot=real.reduce((a,b)=>a+b,0);
-  const W=340,H=220,L0=46,R=8,T=20,B=36,pw=W-L0-R,ph=H-T-B,mn=Math.min(0,...real),mx=Math.max(0,...real);
+  const W=340,H=236,L0=46,R=8,T=20,B=52,pw=W-L0-R,ph=H-T-B,mn=Math.min(0,...real),mx=Math.max(0,...real);
   const raw=((mx-mn)||100)/4,mag=Math.pow(10,Math.floor(Math.log10(raw))),f=raw/mag,step=(f<=1?1:f<=2?2:f<=5?5:10)*mag;
   const lo=Math.floor(mn/step)*step,hi=Math.max(Math.ceil(mx/step)*step,lo+step),Y=v=>T+ph-((v-lo)/(hi-lo))*ph,zy=Y(0),bw=pw/wk.length;
   const tick=v=>{const a=Math.abs(v);return (v<0?'−':'')+'$'+(a>=1000?(a/1000).toFixed(a%1000?1:0)+'k':a)},fmt=v=>(v>0?'+':v<0?'−':'')+'$'+Math.abs(Math.round(v));
@@ -291,11 +294,53 @@ function barHTML(E){
   const inWk=(e,st)=>{const a=ymd(st),b=ymd(new Date(st.getFullYear(),st.getMonth(),st.getDate()+6));return e.date>=a&&e.date<=b};
   const prevSt=new Date(wkStart.getFullYear(),wkStart.getMonth(),wkStart.getDate()-7),thisW=E.filter(e=>inWk(e,wkStart)),prevW=E.filter(e=>inWk(e,prevSt));
   const bestV=real.length?Math.max(...real):null,worstV=real.length?Math.min(...real):null,nm=v=>wk.find(c=>c.v===v).lab;
-  const tile=(l,v,c,sub)=>`<div class="tile"><div class="lbl">${l}</div><div class="${c||''}" style="font-size:17px;font-weight:600;margin-top:3px">${v}</div>${sub?`<div style="font-size:11px;color:var(--mut);margin-top:2px">${sub}</div>`:''}</div>`;
+  const tile=(l,v,c,sub)=>`<div class="tile"><div class="lbl">${l}</div><div class="${c||''}" style="font-size:14px;font-weight:600;margin-top:3px;white-space:nowrap">${v}</div>${sub?`<div style="font-size:11px;color:var(--mut);margin-top:2px">${sub}</div>`:''}</div>`;
   return `<div class="card${evc()}"><div class="row"><button class="x" data-wk="-1">‹</button><b>${wkStart.toLocaleDateString(undefined,o)} – ${end.toLocaleDateString(undefined,o)}</b><button class="x" data-wk="1" ${cur?'disabled style="opacity:.25"':''}>›</button></div>
   <div class="row" style="margin:2px 0 4px"><span class="lbl">Week net · ${real.length} day${real.length==1?'':'s'} logged</span><div style="text-align:right"><b class="${cls(tot)}">${odo('wnet',money(tot,1))}</b>${cadLine(tot,1,cls(tot))}</div></div>
   <svg viewBox="0 0 ${W} ${H}" width="100%">${g}</svg>
-  <div class="grid" style="margin-top:12px;gap:8px">${tile('Best day',bestV>0?nm(bestV)+' '+fmt(bestV):'—',bestV>0?'up':'',bestV>0&&fxr()?cm(bestV*fxr(),1)+' CAD':'')}${tile('Worst day',worstV<0?nm(worstV)+' '+fmt(worstV):'—',worstV<0?'dn':'',worstV<0&&fxr()?cm(worstV*fxr(),1)+' CAD':'')}${tile('Fees this week',money(sum(thisW,'fees')),'',fxr()?cm(sum(thisW,'fees')*fxr())+' CAD':'')}${(()=>{const pn=sum(prevW,'net'),hasP=prevW.length>0,hasC=thisW.length>0,d=tot-pn;return tile('Previous week',hasP?money(pn,1):'—',hasP?cls(pn):'',!hasP?'No trades that week':!hasC?(cur?'No trades yet this week':'No trades this week'):(Math.abs(d)<.005?'Same as this week':(d>0?'This week is ahead by ':'This week is behind by ')+money(Math.abs(d))))})()}</div><button class="btn alt" data-act="wkpdf" style="margin-top:12px">Download this week as PDF</button></div>`;
+  <div class="grid g3" style="margin-top:12px">${tile('Best day',bestV>0?nm(bestV)+' '+fmt(bestV):'—',bestV>0?'up':'')}${tile('Worst day',worstV<0?nm(worstV)+' '+fmt(worstV):'—',worstV<0?'dn':'')}${X?X.dd:''}${X?X.aw+X.al+X.wr+X.pf+X.tw:''}${tile('Fees (wk)',money(sum(thisW,'fees')))}</div><div class="sub" style="margin:8px 0 0;font-size:12px">${(()=>{const pn=sum(prevW,'net');return prevW.length?'Previous week '+money(pn,1)+(thisW.length?' · '+(Math.abs(tot-pn)<.005?'same as this week':'this week is '+(tot>pn?'ahead':'behind')+' by '+money(Math.abs(tot-pn))):''):'No trades the previous week'})()}</div><button class="btn alt" data-act="wkpdf" style="margin-top:10px">Download this week as PDF</button></div>`;
+}
+function gOf(){const G=S.goals||(S.goals={});if(S.goal&&!G.pa){G.pa={t:n(S.goal)}}return G[S.mode]||null}
+function goalHTML(E){return `<div id="goalbox">${goalInner(E)}</div>`}
+function goalSwap(){const b=$('#goalbox');if(!b){render();return}b.innerHTML=goalInner(S.entries.filter(inMode));b.classList.remove('fade');void b.offsetWidth;b.classList.add('fade');const i=$('#g-in');if(i)i.focus()}
+function evPred(o){const sel=o&&o.sel,sf=o&&o.sf,st=o&&o.s;return sel?(e=>sel.includes(e.date)||e.date>sf):(e=>!st||e.date>=st)}
+function evDays(){const G=S.goals||{},c=G.eval||{};return S.entries.filter(e=>inMode(e)&&evPred({s:c.start,sel:c.sel,sf:c.selFrom})(e)).map(e=>e.date)}
+function paintInc(){
+  const E=S.entries.filter(e=>inMode(e)),by={};E.forEach(e=>{by[e.date]=(by[e.date]||0)+n(e.net)});
+  const y=incCal.getFullYear(),m=incCal.getMonth(),first=new Date(y,m,1).getDay(),dim=new Date(y,m+1,0).getDate(),p=y+'-'+pad(m+1);let c='';for(let i=0;i<first;i++)c+='<div></div>';
+  for(let d=1;d<=dim;d++){const k=p+'-'+pad(d),v=by[k];c+=v===undefined?`<div class="cd off">${d}</div>`:`<div class="cd ${incSel.has(k)?'pick':v>0?'up':v<0?'dn':''}" data-inc="${k}">${d}<small>${cfmt(v)}</small></div>`}
+  const picked=[...incSel],tot=picked.reduce((a,k)=>a+(by[k]||0),0);
+  $('#pane').innerHTML=`<div class="row"><b style="font-size:19px">Choose days to count</b><button class="x" data-act="close">✕</button></div>
+  <div class="sub">Tap the Eval days whose profit should count toward your target.</div>
+  <div class="card ev"><div class="row"><button class="x" data-act="incnav" data-d="-1">‹</button><b>${incCal.toLocaleDateString(undefined,{month:'long',year:'numeric'})}</b><button class="x" data-act="incnav" data-d="1">›</button></div>
+  <div class="cg" style="margin-top:10px;grid-template-columns:repeat(7,1fr)">${'SMTWTFS'.split('').map(x=>`<div class="lbl" style="text-align:center">${x}</div>`).join('')}${c}</div></div>
+  <div class="card"><div class="row"><span class="lbl">Counting · ${picked.length} day${picked.length==1?'':'s'}</span><b class="${cls(tot)}">${money(tot,1)}</b></div></div>
+  <div style="margin-bottom:6px"><button class="chip" data-act="incall">Select all days</button><button class="chip" data-act="incnone">Clear all</button></div>
+  <div class="stack" style="margin-top:8px"><button class="btn blue" data-act="incsave">Save</button><button class="btn alt" data-act="close">Cancel</button></div>
+  <div class="msg" style="font-size:12px">Days you log after saving are added automatically.</div>`;
+}
+function goalInner(E){
+  const G=S.goals||(S.goals={}),cur=gOf(),g=cur?n(cur.t):0,ev=S.mode=='eval',now=new Date(),td=ymd(now),pm=now.getFullYear()+'-'+pad(now.getMonth()+1);
+  const L=ev?E.filter(evPred(cur&&{s:cur.start,sel:cur.sel,sf:cur.selFrom})):E.filter(e=>e.date.startsWith(pm)),mt=sum(L,'net'),days=new Set(L.map(e=>e.date)).size;
+  const title=ev?'Eval profit target':now.toLocaleDateString(undefined,{month:'long'})+' goal',st='margin:12px 0 0';
+  if(!g||goalEdit)return `<div class="card${evc()}" style="${st}"><div class="lbl">${ev?'Eval profit target':'Monthly goal'}</div><input id="g-in" inputmode="decimal" placeholder="${ev?'Profit needed to pass, e.g. 3000':'Target in USD, e.g. 1000'}" value="${g||''}" style="margin-top:8px"><div class="stack" style="margin-top:10px"><button class="btn blue" data-act="goalset">Set profit target</button>${g?'<button class="btn alt" data-act="goalcancel">Cancel</button>':''}</div><div class="msg" style="margin:8px 0 0;font-size:12px">${ev?'Enter the profit your eval needs to pass. Progress counts all Eval profit since you started, and does not reset each month.':(g?'Clear the box and tap Set profit target to remove your goal.':'Set a profit target for each month. It carries over every month.')}</div></div>`;
+  let left=0;if(!ev){const dim=new Date(now.getFullYear(),now.getMonth()+1,0).getDate();for(let d=now.getDate();d<=dim;d++){const dt=new Date(now.getFullYear(),now.getMonth(),d),w=dt.getDay();if(w>0&&w<6&&!HOLI(ymd(dt)))left++}}
+  const pct=Math.max(0,Math.min(100,mt/g*100)),done=mt>=g,rem=g-mt,tl=(l,v)=>`<div class="tile"><div class="lbl">${l}</div><div style="font-size:14px;font-weight:600;margin-top:3px">${v}</div></div>`;
+  const H=ev?(cur.hist||(cur.prev?[cur.prev]:[])):[],seen=new Set([mt.toFixed(2)]),opts=[],_=H.forEach((h,i)=>{const p=sum(E.filter(evPred(h)),'net'),k=p.toFixed(2);if(!seen.has(k)&&opts.length<3){seen.add(k);opts.push([i,p])}}),tiles=ev?tl('Days traded',days)+tl('Avg per day',days?money(mt/days,1):'—'):(!done&&left?tl('Trading days left',left)+tl('Needed per day',money(rem/left)):'');
+  return `<div class="card${evc()}" style="${st}"><div class="row"><span class="lbl">${title}</span><button class="x" data-act="goaledit" style="font-size:13px">Edit</button></div>
+  <div class="row" style="margin-top:6px"><b class="${cls(mt)}" style="font-size:22px">${money(mt,1)}</b><span class="sub" style="margin:0">of ${money(g)} target</span></div>
+  <div style="height:10px;border-radius:5px;background:var(--bg);border:1px solid var(--line);margin:10px 0 8px;overflow:hidden"><div style="width:${pct.toFixed(1)}%;height:100%;border-radius:5px;background:var(--up)"></div></div>
+  <div class="row" style="font-size:12px;color:var(--mut)"><span>${done?(ev?'Target reached':'Goal hit'):Math.round(pct)+'% there'}</span><span>${done?'+'+money(mt-g)+' over':money(rem)+' to go'}</span></div>
+  ${tiles?`<div class="grid" style="margin-top:10px;gap:8px">${tiles}</div>`:''}${ev?`${opts.length?`<div class="tile" style="margin-top:10px"><div class="lbl">Eval progress changed</div><div style="font-size:13px;margin-top:4px">Pick the progress you want.</div><div class="stack" style="margin-top:8px">${opts.map(([i,p],j)=>`<button class="btn ${j?'alt':'blue'}" data-act="goalundo" data-i="${i}">Go back to ${money(p,1)}</button>`).join('')}<button class="btn alt" data-act="goalkeep">Stay at ${money(mt,1)}</button></div></div>`:''}<button class="btn alt" data-act="incopen" style="margin-top:10px">Choose days to count</button><button class="btn alt" data-act="goalnew" style="margin-top:10px">${cur.start?'Restart eval progress':'Start new eval'}</button><div class="msg" style="margin:6px 0 0;font-size:12px">${cur.sel?'Counting '+cur.sel.length+' chosen day'+(cur.sel.length==1?'':'s')+', plus anything you log after '+cur.selFrom+'.':(cur.start?'Counting Eval profit since '+cur.start+'.':'Counting all Eval profit so far.')} Tap when you start a fresh eval to reset progress to $0.</div>`:''}</div>`;
+}
+function symHTML(E){
+  const now=new Date(),pm=now.getFullYear()+'-'+pad(now.getMonth()+1),st=wkStart||monOf(now),a=ymd(st),b=ymd(new Date(st.getFullYear(),st.getMonth(),st.getDate()+6));
+  const L=E.filter(e=>symP=='all'||(symP=='month'?e.date.startsWith(pm):e.date>=a&&e.date<=b)),M={};
+  L.forEach(e=>{const k=n(e.accounts)||1;(e.trades||[]).forEach(t=>{const s=(t.symbol||'').trim().toUpperCase().replace(/[FGHJKMNQUVXZ]\d{1,2}$/,'');if(!s)return;const o=M[s]||(M[s]={s,p:0,c:0,w:[],l:[],lg:0,sh:0,lw:0,ll:0,sw:0,sl:0});const v=n(t.pnl)*k;o.p+=v;o.c++;if(t.res=='W')o.w.push(v);if(t.res=='L')o.l.push(v);const lng=/^l/i.test(t.side||'');if(lng)o.lg+=v;else if(t.side)o.sh+=v;if(t.res=='W'){lng?o.lw++:o.sw++}if(t.res=='L'){lng?o.ll++:o.sl++}})});
+  const R=Object.values(M).sort((x,y)=>Math.abs(y.p)-Math.abs(x.p)),mx=R.length?Math.max(...R.map(r=>Math.abs(r.p)))||1:1,av=x=>x.length?x.reduce((p,q)=>p+q,0)/x.length:0;
+  const chips=[['all','All time'],['month','Month'],['week','Week']].map(([k,l])=>`<button class="chip ${symP==k?'on':''}" data-act="symp" data-p="${k}">${l}</button>`).join('');
+  const tot=R.reduce((x,r)=>({lg:x.lg+r.lg,sh:x.sh+r.sh,lw:x.lw+r.lw,ll:x.ll+r.ll,sw:x.sw+r.sw,sl:x.sl+r.sl}),{lg:0,sh:0,lw:0,ll:0,sw:0,sl:0}),wr=(w,l)=>w+l?Math.round(w/(w+l)*100)+'%':'—';
+  return `<div class="card${evc()}"><div class="lbl" style="margin-bottom:8px">Results by symbol</div><div>${chips}</div>`+(R.length?R.map(r=>{const wn=r.w.length,ls=r.l.length;return `<div style="border-top:1px solid var(--line);padding:10px 0 2px;margin-top:2px"><div class="row"><b>${esc(r.s)}</b><b class="${cls(r.p)}">${money(r.p,1)}</b></div><div style="height:6px;border-radius:3px;background:var(--bg);margin:7px 0 6px"><div style="width:${Math.max(3,Math.abs(r.p)/mx*100).toFixed(0)}%;height:6px;border-radius:3px;background:var(${r.p<0?'--dn':'--up'})"></div></div><div style="font-size:12px;color:var(--mut)">${r.c} trade${r.c==1?'':'s'}${wn+ls?' · '+Math.round(wn/(wn+ls)*100)+'% win':''}${wn?' · avg win '+money(av(r.w)):''}${ls?' · avg loss '+money(av(r.l)):''}</div></div>`}).join('')+`<div class="grid" style="margin-top:10px;gap:8px"><div class="tile"><div class="lbl">Long</div><div class="${cls(tot.lg)}" style="font-size:14px;font-weight:600;margin-top:3px">${money(tot.lg,1)} · ${wr(tot.lw,tot.ll)}</div></div><div class="tile"><div class="lbl">Short</div><div class="${cls(tot.sh)}" style="font-size:14px;font-weight:600;margin-top:3px">${money(tot.sh,1)} · ${wr(tot.sw,tot.sl)}</div></div></div>`:`<div class="msg" style="margin:6px 0 0">No trades with a symbol in this period.</div>`)+`</div>`;
 }
 function statsHTML(E){
   if(!E.length)return '<div class="empty">Log a few days to see your stats.</div>';
@@ -304,12 +349,9 @@ function statsHTML(E){
   let c=0,pk=0,dd=0;const pts=nets.map(v=>c+=v);pts.forEach(v=>{pk=Math.max(pk,v);dd=Math.max(dd,pk-v)});
   const mn=Math.min(0,...pts),mx=Math.max(0,...pts),rg=(mx-mn)||1,w=300,hh=110,st=pts.length>1?w/(pts.length-1):0;
   const line=pts.map((v,i)=>(i*st).toFixed(1)+','+(hh-((v-mn)/rg)*hh).toFixed(1)).join(' '),zy=(hh-((0-mn)/rg)*hh).toFixed(1);
-  const rows=[['Win rate',(W.length+L.length)?Math.round(W.length/(W.length+L.length)*100)+'%':'—'],['Average win',money(avg(W)),'up',avg(W)],['Average loss',money(avg(L)),'dn',avg(L)],['Profit factor',sl?(sw/sl).toFixed(2):(sw?'∞':'0')],['Max drawdown',money(-dd),'dn',-dd],['Best day',money(Math.max(...nets),1),'up',Math.max(...nets)],['Worst day',money(Math.min(...nets),1),'dn',Math.min(...nets)]];
-  {const tc=E.reduce((a,e)=>{const c=wlOf(e);a.w+=c.w;a.l+=c.l;return a},{w:0,l:0});if(tc.w+tc.l){rows.push(['Trades won / lost',tc.w+' / '+tc.l]);rows.push(['Trade win rate',Math.round(tc.w/(tc.w+tc.l)*100)+'%'])}}
-  const tg=TAGS.map(t=>{const X=A.filter(e=>(e.tags||[]).includes(t));return X.length?[t,X.length,sum(X,'net')/X.length]:null}).filter(Boolean);
-  return `${barHTML(E)}
-  <div class="card">${rows.map(([a,v,k,u])=>`<div class="row item" style="cursor:default"><span>${a}</span><div style="text-align:right"><b class="${k||''}">${v}</b>${u!=null?cadLine(u,1,k):''}</div></div>`).join('')}</div>`+
-  (tg.length?`<div class="card"><div class="lbl" style="margin-bottom:4px">Average net by tag</div>${tg.map(([t,k,a])=>`<div class="row item" style="cursor:default"><span>${t} <span class="lbl">×${k}</span></span><b class="${cls(a)}">${money(a,1)}</b></div>`).join('')}</div>`:'');
+  const tc=E.reduce((a,e)=>{const c=wlOf(e);a.w+=c.w;a.l+=c.l;return a},{w:0,l:0}),T=(l,v,c,sub)=>`<div class="tile"><div class="lbl">${l}</div><div class="${c||''}" style="font-size:14px;font-weight:600;margin-top:3px;white-space:nowrap">${v}</div>${sub?`<div style="font-size:10.5px;color:var(--mut);margin-top:2px">${sub}</div>`:''}</div>`;
+  const X={wr:T('Win rate',(W.length+L.length)?Math.round(W.length/(W.length+L.length)*100)+'%':'—','','days'),aw:T('Avg win',money(avg(W)),'up'),al:T('Avg loss',money(avg(L)),'dn'),pf:T('Profit factor',sl?(sw/sl).toFixed(2):(sw?'∞':'0')),dd:T('Drawdown',money(-dd),'dn'),tw:T('Trades W / L',tc.w+tc.l?tc.w+' / '+tc.l:'—','',tc.w+tc.l?Math.round(tc.w/(tc.w+tc.l)*100)+'% won':'')};
+  return barHTML(E,X)+symHTML(E);
 }
 function taxHTML(E,y){
   const yrs=[...new Set([...E.map(e=>e.date.slice(0,4)),...S.expenses.map(e=>e.date.slice(0,4)),...S.withdrawals.map(e=>e.date.slice(0,4))])].sort().reverse();if(!yrs.length)yrs.push(y);
@@ -538,7 +580,7 @@ const lsSet=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}};
 let sess=lsGet(K_SESS,null),sy=lsGet(K_SYNC,{since:null,h:{}}),syncing=false,syncErr='',syncT=null;
 function stab(o){if(Array.isArray(o))return '['+o.map(stab).join(',')+']';if(o&&typeof o=='object')return '{'+Object.keys(o).filter(k=>o[k]!==undefined).sort().map(k=>JSON.stringify(k)+':'+stab(o[k])).join(',')+'}';return JSON.stringify(o)}
 function hsh(s){let h1=0xdeadbeef,h2=0x41c6ce57;for(let i=0,c;i<s.length;i++){c=s.charCodeAt(i);h1=Math.imul(h1^c,2654435761);h2=Math.imul(h2^c,1597334677)}h1=Math.imul(h1^(h1>>>16),2246822507)^Math.imul(h2^(h2>>>13),3266489909);h2=Math.imul(h2^(h2>>>16),2246822507)^Math.imul(h1^(h1>>>13),3266489909);return (4294967296*(2097151&h2)+(h1>>>0)).toString(36)}
-function settingsObj(){const o={rate:S.rate,taxPct:S.taxPct,deductFees:S.deductFees!==false,fx:S.fx??null,recon:S.recon||{}};if(S.syncKey){const k=localStorage.getItem('futuresLedgerKey');if(k)o.apiKey=k}return o}
+function settingsObj(){const o={rate:S.rate,taxPct:S.taxPct,deductFees:S.deductFees!==false,fx:S.fx??null,recon:S.recon||{},goals:S.goals||{}};if(S.syncKey){const k=localStorage.getItem('futuresLedgerKey');if(k)o.apiKey=k}return o}
 function items(){const m={};[['entry','entries'],['expense','expenses'],['payout','withdrawals']].forEach(([kd,L])=>S[L].forEach(e=>{if(!e.id)e.id=uid();m[kd+':'+e.id]=e}));m['settings:main']=settingsObj();if(S.prefs&&Object.keys(S.prefs).length)m['prefs:main']=S.prefs;return m}
 function pendingCount(){const c=items();let n=0;for(const k in c)if(sy.h[k]!==hsh(stab(c[k])))n++;for(const k in sy.h)if(!(k in c))n++;return n}
 function syncLabel(){if(!sess)return 'Not signed in';if(syncing)return 'Syncing…';if(syncErr)return syncErr;const p=pendingCount();return (p?p+' change'+(p==1?'':'s')+' waiting · ':'')+(sy.last?'Synced '+new Date(sy.last).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'}):'Not synced yet')}
@@ -572,7 +614,7 @@ async function doLogin(){
 function applyRec(w){
   const k=w.kind+':'+w.id;
   if(w.kind=='settings'){if(w.deleted)return false;const d=w.data||{},before=stab(settingsObj());
-    if(d.rate!=null)S.rate=d.rate;if(d.taxPct!=null)S.taxPct=d.taxPct;if(d.deductFees!=null)S.deductFees=d.deductFees;if('fx' in d)S.fx=d.fx;if(d.recon)S.recon=d.recon;
+    if(d.rate!=null)S.rate=d.rate;if(d.taxPct!=null)S.taxPct=d.taxPct;if(d.deductFees!=null)S.deductFees=d.deductFees;if('fx' in d)S.fx=d.fx;if(d.recon)S.recon=d.recon;if(d.goals)S.goals=d.goals;else if(d.goal!=null&&!S.goals)S.goals={pa:{t:d.goal}};
     if(d.apiKey){S.syncKey=true;if(!localStorage.getItem('futuresLedgerKey'))localStorage.setItem('futuresLedgerKey',d.apiKey)}
     const after=stab(settingsObj());sy.h[k]=hsh(after);return before!==after}
   if(w.kind=='prefs'){const before=stab(S.prefs||{});if(w.deleted){S.prefs={};delete sy.h[k]}else{S.prefs={...(w.data||{})};sy.h[k]=hsh(stab(S.prefs))}applyPrefs();return before!==stab(S.prefs||{})}
@@ -1032,9 +1074,10 @@ function csv(){
 function xcsv(){const rows=[['Date','Category','Amount','Note']];[...S.expenses].sort((a,b)=>a.date.localeCompare(b.date)).forEach(x=>rows.push([x.date,x.cat,x.amount,x.note||'']));dlf('futures-ledger-expenses.csv',rows.map(r=>r.map(q).join(',')).join('\n'),'text/csv')}
 
 document.addEventListener('click',e=>{
-  const g=e.target.closest('[data-tab],[data-act],[data-edit],[data-del],[data-side],[data-tag],[data-cat],[data-day],[data-cal],[data-xedit],[data-wedit],[data-basis],[data-wk],[data-mode],[data-emode],[data-pref],[data-acc],[data-rmimg],[data-viewimg],[data-res]');if(!g)return;
+  const g=e.target.closest('[data-tab],[data-act],[data-edit],[data-del],[data-side],[data-tag],[data-cat],[data-day],[data-cal],[data-xedit],[data-wedit],[data-basis],[data-wk],[data-mode],[data-emode],[data-pref],[data-acc],[data-rmimg],[data-viewimg],[data-res],[data-inc]');if(!g)return;
   const D=g.dataset;
-  if(D.tab){if(D.tab==tab){setSc(0);return}tab=D.tab;renderNav();const a=$('#app');a.classList.add('out');setTimeout(()=>{render();a.classList.remove('out');fadeApp();setSc(0)},110);return}
+  if(D.tab){if(D.tab==tab){setSc(0);return}evUndo=null;tab=D.tab;renderNav();const a=$('#app');a.classList.add('out');setTimeout(()=>{render();a.classList.remove('out');fadeApp();setSc(0)},110);return}
+  if(D.inc){if(incSel.has(D.inc))incSel.delete(D.inc);else incSel.add(D.inc);paintInc();return}
   if(D.cal){cal=new Date(cal.getFullYear(),cal.getMonth()+ +D.cal,1);render();fadeApp();return}
   if(D.day&&HOLI(D.day)){draft=null;status='';openSheet();holidayView(D.day);return}
   if(D.day){const X=S.entries.filter(v=>v.date==D.day&&inMode(v));status='';if(X.length>1){draft=null;openSheet();dayList(D.day)}else if(X.length){draft=JSON.parse(JSON.stringify(X[0]));openSheet();view()}else{draft=newDraft({date:D.day});openSheet();paint(1)}return}
@@ -1045,7 +1088,7 @@ document.addEventListener('click',e=>{
     if(v===''||v==null)delete o[k];else if(k=='ts')o[k]=+v;else if(k=='anim')o[k]=v!=='off';else if(k=='startMode'&&v=='last')delete o[k];else o[k]=v;
     if(k=='ts'&&+v==100)delete o[k];if(k=='theme'&&v=='auto')delete o[k];if(k=='anim'&&v!=='off')delete o[k];
     applyPrefs();save();const y=getSc();render();setSc(y);return}
-  if(D.mode){S.mode=D.mode;persist();render();fadeApp();return}
+  if(D.mode){evUndo=null;S.mode=D.mode;persist();render();fadeApp();return}
   if(D.rmimg!==undefined){pull();draft.imgs.splice(+D.rmimg,1);paint();return}
   if(D.viewimg){openViewer(D.viewimg);return}
   if(D.acc){const f=$('#f-acc');f.value=Math.max(1,Math.min(99,(parseInt(f.value)||1)+ +D.acc));if(draft)draft.accounts=+f.value;calc();return}
@@ -1081,6 +1124,18 @@ document.addEventListener('click',e=>{
     if(!u||!f){$('#w-msg').className='msg err';$('#w-msg').textContent='Enter the amount and an exchange rate first.';return}
     const cad=+(u*f).toFixed(2);delete wd._c;Object.assign(wd,{usd:u,fx:f,cad,pct:S.taxPct,setUsd:+(u*S.taxPct/100).toFixed(2),setCad:+(cad*S.taxPct/100).toFixed(2)});S.fx=f;
     if(wd.id)S.withdrawals=S.withdrawals.map(v=>v.id==wd.id?wd:v);else{wd.id=Date.now().toString(36);S.withdrawals.push(wd)}save();closeSheet();render()}
+  else if(a=='symp'){symP=D.p;const y=getSc();render();setSc(y)}
+  else if(a=='goalset'){const v=n(($('#g-in')||{}).value),G=S.goals||(S.goals={});gOf();if(v>0)G[S.mode]=Object.assign({},G[S.mode],{t:v});else delete G[S.mode];if(S.mode=='pa')S.goal=null;goalEdit=false;save();goalSwap()}
+  else if(a=='goalnew'){if(!g._c){g._c=1;g.textContent='You sure? Tap again to restart';g.style.color='var(--dn)';return}const G=S.goals||(S.goals={});if(G.eval){if(G.eval.prev&&!G.eval.hist){G.eval.hist=[G.eval.prev]}delete G.eval.prev;G.eval.hist=[{s:G.eval.start||null,sel:G.eval.sel,sf:G.eval.selFrom}].concat(G.eval.hist||[]).slice(0,8);G.eval.start=today();delete G.eval.sel;delete G.eval.selFrom;save();goalSwap()}}
+  else if(a=='goalundo'){const G=S.goals||(S.goals={}),H=G.eval&&(G.eval.hist||(G.eval.prev?[G.eval.prev]:null)),i=+g.dataset.i;if(H&&H[i]){if(H[i].s)G.eval.start=H[i].s;else delete G.eval.start;if(H[i].sel){G.eval.sel=H[i].sel;G.eval.selFrom=H[i].sf}else{delete G.eval.sel;delete G.eval.selFrom}G.eval.hist=H.slice(i+1);delete G.eval.prev;save();goalSwap()}}
+  else if(a=='incopen'){incSel=new Set(evDays());incCal=new Date();openSheet();paintInc();stag()}
+  else if(a=='incnav'){incCal=new Date(incCal.getFullYear(),incCal.getMonth()+ +D.d,1);paintInc()}
+  else if(a=='incall'){S.entries.filter(inMode).forEach(e=>incSel.add(e.date));paintInc()}
+  else if(a=='incnone'){incSel=new Set();paintInc()}
+  else if(a=='incsave'){const G=S.goals||(S.goals={});if(G.eval){G.eval.hist=[{s:G.eval.start||null,sel:G.eval.sel,sf:G.eval.selFrom}].concat(G.eval.hist||[]).slice(0,8);G.eval.sel=[...incSel].sort();G.eval.selFrom=today();save();closeSheet();goalSwap()}}
+  else if(a=='goalkeep'){const G=S.goals||(S.goals={});if(G.eval){delete G.eval.prev;delete G.eval.hist;save();goalSwap()}}
+  else if(a=='goalcancel'){goalEdit=false;goalSwap()}
+  else if(a=='goaledit'){goalEdit=true;goalSwap()}
   else if(a=='tgfees'){S.deductFees=(S.deductFees===false);save();render()}
   else if(a=='csvimp')$('#csvin').click();
   else if(a=='close'||a=='done')closeSheet();
